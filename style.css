@@ -193,7 +193,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg-base);color:var(--text
 
 /* Signals strip */
 #signals{
-  height:148px;background:var(--bg-primary);border-top:1px solid var(--border-dim);
+  height:210px;background:var(--bg-primary);border-top:1px solid var(--border-dim);
   display:flex;flex-direction:column;flex-shrink:0;
 }
 .sig-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-dim)}
@@ -428,6 +428,101 @@ html,body{height:100%;overflow:hidden;background:var(--bg-base);color:var(--text
 /* Loading bar */
 .load-bar{height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:lbar 1.5s infinite}
 @keyframes lbar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* ══════════════════════════════════════════════════════
+   ENHANCED SIGNAL ENGINE STYLES
+   ══════════════════════════════════════════════════════ */
+
+/* ── Indicator Cards Strip ──────────────────────────── */
+.indicator-cards-strip{
+  display:flex;gap:4px;padding:5px 8px;overflow-x:auto;flex-shrink:0;
+  background:var(--bg-secondary);border-bottom:1px solid var(--border-dim);
+  scrollbar-width:none;
+}
+.indicator-cards-strip::-webkit-scrollbar{display:none}
+
+.ind-card{
+  flex-shrink:0;min-width:52px;padding:4px 5px;border-radius:4px;
+  border:1px solid var(--border-dim);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  transition:.15s;position:relative;
+}
+.ind-card:hover{filter:brightness(1.2);transform:translateY(-1px)}
+.ind-name{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3)}
+.ind-val{font-family:var(--mono);font-size:12px;font-weight:800;line-height:1.1}
+.ind-sig{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+
+/* ── Main Signal Row ────────────────────────────────── */
+.sig-main-row{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:var(--bg-secondary);border-bottom:1px solid var(--border-dim);
+  flex-shrink:0;
+}
+.sig-main-left{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:100px;flex-shrink:0;
+}
+.sig-levels{
+  flex:1;display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;
+}
+.sig-level{display:flex;flex-direction:column;align-items:center;min-width:55px}
+.sl-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--text3)}
+.sl-val{font-family:var(--mono);font-size:12px;font-weight:700}
+.sig-main-right{flex-shrink:0}
+
+/* ── Signal Strength Bar ───────────────────────────── */
+.str-bars{display:flex;gap:2px;align-items:flex-end}
+.str-bar{
+  width:7px;height:14px;border-radius:2px;
+  background:var(--bg-card);border:1px solid var(--border-dim);
+  transition:background .3s,box-shadow .3s;
+}
+.str-bull{background:var(--green)!important;border-color:rgba(0,230,118,.5)!important;box-shadow:0 0 5px rgba(0,230,118,.4)}
+.str-bear{background:var(--red)!important;border-color:rgba(255,23,68,.5)!important;box-shadow:0 0 5px rgba(255,23,68,.4)}
+.str-hold{background:var(--orange)!important;border-color:rgba(255,145,0,.5)!important}
+.str-num{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text2);margin-left:4px}
+.sig-strength-wrap{display:flex;align-items:center}
+
+/* ── Strong signal badge pulse ───────────────────────  */
+.sig-badge.sig-strong{
+  animation:sig-pulse 1.2s ease-in-out infinite;
+  font-size:13px!important;
+  letter-spacing:.5px;
+}
+@keyframes sig-pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.85;transform:scale(1.04)}
+}
+.sig-badge.buy.sig-strong{
+  box-shadow:0 0 0 0 rgba(0,230,118,.6);
+  animation:sig-glow-buy 1.2s ease-in-out infinite;
+}
+.sig-badge.sell.sig-strong{
+  animation:sig-glow-sell 1.2s ease-in-out infinite;
+}
+@keyframes sig-glow-buy{
+  0%,100%{box-shadow:0 0 8px rgba(0,230,118,.5);transform:scale(1)}
+  50%{box-shadow:0 0 22px rgba(0,230,118,.9);transform:scale(1.05)}
+}
+@keyframes sig-glow-sell{
+  0%,100%{box-shadow:0 0 8px rgba(255,23,68,.5);transform:scale(1)}
+  50%{box-shadow:0 0 22px rgba(255,23,68,.9);transform:scale(1.05)}
+}
+
+/* ── Signal History Items ───────────────────────────── */
+.sh-item{
+  display:grid;grid-template-columns:28px 1fr 32px 55px 28px;gap:3px;
+  padding:3px 0;border-bottom:1px solid var(--border-dim);align-items:center;
+  font-size:10px;
+}
+.sh-time{font-family:var(--mono);font-size:9px;color:var(--text3)}
+.sh-sig{font-weight:700;font-size:10px}
+.sh-conf{font-family:var(--mono);font-size:9px;color:var(--text2)}
+.sh-price{font-family:var(--mono);font-size:9px;color:var(--text2)}
+.sh-str{font-family:var(--mono);font-size:9px;font-weight:700}
+
+/* ── Signals panel transition ──────────────────────── */
+#signals{transition:box-shadow .5s ease}
 
 /* Misc */
 .fw7{font-weight:700}.mono{font-family:var(--mono)}

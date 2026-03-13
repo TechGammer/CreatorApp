@@ -368,6 +368,192 @@ const OptionsEngine = {
   },
 };
 
+/* ── TECHNICAL ANALYSIS ENGINE ─────────────────────── */
+const TechEngine = {
+  ema(vals, n) {
+    if(vals.length<n) return vals[vals.length-1]||0;
+    const k=2/(n+1); let e=vals.slice(0,n).reduce((a,b)=>a+b,0)/n;
+    for(let i=n;i<vals.length;i++) e=vals[i]*k+e*(1-k);
+    return +e.toFixed(2);
+  },
+  rsi(vals, n=14) {
+    if(vals.length<n+2) return 50;
+    let g=0,l=0;
+    for(let i=vals.length-n;i<vals.length;i++){const d=vals[i]-vals[i-1];if(d>0)g+=d;else l-=d;}
+    const rs=(g/n)/((l/n)||.001);
+    return +(100-100/(1+rs)).toFixed(1);
+  },
+  macd(vals) {
+    if(vals.length<30) return {line:0,sig:0,hist:0};
+    const e12=this.ema(vals,12), e26=this.ema(vals,26);
+    // Compute proper signal line as 9-EMA of MACD values over last 20 bars
+    const macdSeries = [];
+    for(let i=Math.max(26,vals.length-35);i<vals.length;i++){
+      const sub=vals.slice(0,i+1);
+      macdSeries.push(this.ema(sub,12)-this.ema(sub,26));
+    }
+    const line=+(e12-e26).toFixed(2);
+    const sigLine=+this.ema(macdSeries,9).toFixed(2);
+    return {line, sig:sigLine, hist:+(line-sigLine).toFixed(2)};
+  },
+  bb(vals, n=20, m=2) {
+    const s=vals.slice(-n);
+    if(s.length<n) return {upper:vals[vals.length-1]*1.02,middle:vals[vals.length-1],lower:vals[vals.length-1]*.98,pct:50,width:2};
+    const avg=s.reduce((a,b)=>a+b,0)/n;
+    const std=Math.sqrt(s.reduce((a,b)=>a+(b-avg)**2,0)/n);
+    const upper=+(avg+m*std).toFixed(2), lower=+(avg-m*std).toFixed(2);
+    const cur=vals[vals.length-1];
+    const pct=+((cur-lower)/(upper-lower||1)*100).toFixed(1);
+    return {upper, middle:+avg.toFixed(2), lower, std, pct, width:+(2*m*std/avg*100).toFixed(2)};
+  },
+  vwap(bars) {
+    const sl=bars.slice(-200);
+    const sv=sl.reduce((a,b)=>a+b.volume,0)||1;
+    return +(sl.reduce((a,b)=>a+(b.close+b.high+b.low)/3*b.volume,0)/sv).toFixed(2);
+  },
+  stoch(bars, k=14) {
+    const sl=bars.slice(-k); if(!sl.length) return 50;
+    const hi=Math.max(...sl.map(b=>b.high)), lo=Math.min(...sl.map(b=>b.low));
+    return +((bars[bars.length-1]?.close-lo)/(hi-lo||1)*100).toFixed(1);
+  },
+  adx(bars, n=14) {
+    if(bars.length<n+2) return {adx:20, diP:15, diM:15};
+    let tr=0,dmp=0,dmm=0;
+    for(let i=bars.length-n;i<bars.length;i++){
+      const {high:h,low:l,close:c}=bars[i], {high:ph,low:pl,close:pc}=bars[i-1];
+      tr+=Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc));
+      const p=Math.max(0,h-ph), mm=Math.max(0,pl-l);
+      dmp+=p>mm?p:0; dmm+=mm>p?mm:0;
+    }
+    if(!tr) return {adx:20, diP:15, diM:15};
+    const diP=+(100*dmp/tr).toFixed(1), diM=+(100*dmm/tr).toFixed(1);
+    return {adx:+(100*Math.abs(diP-diM)/(diP+diM||1)).toFixed(1), diP, diM};
+  },
+  oi_levels(spot, chain) {
+    const below=chain.filter(r=>r.strike<spot).sort((a,b)=>b.putOI-a.putOI);
+    const above=chain.filter(r=>r.strike>spot).sort((a,b)=>b.callOI-a.callOI);
+    return {
+      s1: below[0]?.strike||spot-100,  s2: below[1]?.strike||spot-200,
+      r1: above[0]?.strike||spot+100,  r2: above[1]?.strike||spot+200,
+    };
+  },
+  compute(bars) {
+    const cls=bars.map(b=>b.close);
+    return {
+      rsi: this.rsi(cls), ema9: this.ema(cls,9), ema20: this.ema(cls,20), ema50: this.ema(cls,50),
+      macd: this.macd(cls), bb: this.bb(cls), vwap: this.vwap(bars),
+      stoch: this.stoch(bars), adx: this.adx(bars),
+    };
+  }
+};
+
+/* ── MULTI-FACTOR SIGNAL ENGINE (10 indicators, weighted) ─ */
+const SignalEngine = {
+  current:{signal:'HOLD',strength:5,confidence:50,indicators:[],bullScore:0,bearScore:0},
+  history:[],
+
+  eval(spot, tech, pcr, maxPain, geoScore) {
+    const inds=[]; let bull=0, bear=0;
+    const add=(name,val,s,str,reason,color)=>{
+      inds.push({name,val,s,str,reason,c:color});
+      if(s==='BUY') bull+=str; else if(s==='SELL') bear+=str;
+    };
+
+    /* 1 ── RSI  (max 15) */
+    const r=tech.rsi;
+    if(r<25)      add('RSI',r,'BUY',15,`RSI ${r} — OVERSOLD 🔥 strong buy zone`,'green');
+    else if(r>75) add('RSI',r,'SELL',15,`RSI ${r} — OVERBOUGHT ⚡ overextended`,'red');
+    else if(r<40) add('RSI',r,'BUY',8,`RSI ${r} — bearish zone, recovery possible`,'green');
+    else if(r>60) add('RSI',r,'BUY',8,`RSI ${r} — bullish momentum building`,'green');
+    else          add('RSI',r,'HOLD',0,`RSI ${r} — neutral zone`,'yellow');
+
+    /* 2 ── MACD  (max 20) */
+    const {line:ml,hist:mh}=tech.macd;
+    if(mh>0&&ml>0)  add('MACD',`+${ml}`,'BUY',20,`MACD +${ml} bull crossover ✅ strong momentum`,'green');
+    else if(mh<0&&ml<0) add('MACD',ml,'SELL',20,`MACD ${ml} bear crossover ⬇️ sell pressure`,'red');
+    else if(mh>0)   add('MACD',ml,'BUY',10,`MACD hist turning +ve — momentum rising`,'green');
+    else            add('MACD',ml,'SELL',10,`MACD hist turning -ve — momentum fading`,'red');
+
+    /* 3 ── EMA alignment  (max 15) */
+    const {ema9:e9,ema20:e20}=tech;
+    if(spot>e9&&e9>e20)   add('EMA',`▲${e9.toFixed(0)}`,'BUY',15,`Price(${spot.toFixed(0)})>EMA9(${e9})>EMA20(${e20}) — perfect uptrend`,'green');
+    else if(spot<e9&&e9<e20) add('EMA',`▼${e9.toFixed(0)}`,'SELL',15,`Price<EMA9<EMA20(${e20}) — downtrend aligned`,'red');
+    else if(spot>e20)     add('EMA',`▲${e9.toFixed(0)}`,'BUY',7,`Above EMA20(${e20}) — mild bullish bias`,'green');
+    else                  add('EMA',`▼${e9.toFixed(0)}`,'SELL',7,`Below EMA20(${e20}) — mild bearish bias`,'red');
+
+    /* 4 ── Bollinger Bands  (max 12) */
+    const {upper:bu,lower:bl,pct:bp}=tech.bb;
+    if(spot<bl)    add('BB',`${bp}%`,'BUY',12,`Price below lower BB(${bl}) — mean reversion BUY`,'green');
+    else if(spot>bu) add('BB',`${bp}%`,'SELL',12,`Price above upper BB(${bu}) — mean reversion SELL`,'red');
+    else if(bp<25) add('BB',`${bp}%`,'BUY',6,`Near lower BB — ${bp}% of band, oversold`,'green');
+    else if(bp>75) add('BB',`${bp}%`,'SELL',6,`Near upper BB — ${bp}% of band, overbought`,'red');
+    else           add('BB',`${bp}%`,'HOLD',0,`Mid Bollinger (${bp}%) — width ${tech.bb.width}%`,'yellow');
+
+    /* 5 ── VWAP  (max 10) */
+    const vd=+((spot-tech.vwap)/tech.vwap*100).toFixed(2);
+    if(vd>0.35)     add('VWAP',tech.vwap.toFixed(0),'BUY',10,`+${vd}% above VWAP(${tech.vwap}) — institutional buying`,'green');
+    else if(vd<-0.35) add('VWAP',tech.vwap.toFixed(0),'SELL',10,`${vd}% below VWAP(${tech.vwap}) — distribution`,'red');
+    else            add('VWAP',tech.vwap.toFixed(0),'HOLD',0,`Near VWAP(${tech.vwap}) — balance zone`,'yellow');
+
+    /* 6 ── ADX trend strength  (max 10) */
+    const {adx:ax,diP,diM}=tech.adx;
+    if(ax>28&&diP>diM)  add('ADX',ax,'BUY',10,`ADX ${ax} strong uptrend | DI+ ${diP} > DI- ${diM}`,'green');
+    else if(ax>28&&diM>diP) add('ADX',ax,'SELL',10,`ADX ${ax} strong downtrend | DI- ${diM} > DI+ ${diP}`,'red');
+    else if(ax>20&&diP>diM) add('ADX',ax,'BUY',5,`ADX ${ax} moderate uptrend forming`,'green');
+    else if(ax>20&&diM>diP) add('ADX',ax,'SELL',5,`ADX ${ax} moderate downtrend`,'red');
+    else                add('ADX',ax,'HOLD',0,`ADX ${ax} — weak/sideways trend`,'yellow');
+
+    /* 7 ── Stochastic  (max 8) */
+    const sk=tech.stoch;
+    if(sk<20)  add('Stoch',`${sk}%`,'BUY',8,`Stoch ${sk}% — oversold rebound likely`,'green');
+    else if(sk>80) add('Stoch',`${sk}%`,'SELL',8,`Stoch ${sk}% — overbought reversal risk`,'red');
+    else if(sk<35) add('Stoch',`${sk}%`,'BUY',4,`Stoch ${sk}% — trending from oversold`,'green');
+    else if(sk>65) add('Stoch',`${sk}%`,'SELL',4,`Stoch ${sk}% — approaching overbought`,'red');
+    else       add('Stoch',`${sk}%`,'HOLD',0,`Stoch ${sk}% — neutral range`,'yellow');
+
+    /* 8 ── PCR (options market sentiment)  (max 15) */
+    const pcrV=+pcr;
+    if(pcrV>1.4)      add('PCR',pcrV,'BUY',15,`PCR ${pcrV} — heavy put buying = market floor building 🛡`,'green');
+    else if(pcrV<0.6) add('PCR',pcrV,'SELL',15,`PCR ${pcrV} — call overload = bearish positioning ⚠️`,'red');
+    else if(pcrV>1.15) add('PCR',pcrV,'BUY',8,`PCR ${pcrV} — mild put bias = slight bullish`,'green');
+    else if(pcrV<0.85) add('PCR',pcrV,'SELL',8,`PCR ${pcrV} — mild call bias = slight bearish`,'red');
+    else               add('PCR',pcrV,'HOLD',0,`PCR ${pcrV} — balanced OI structure`,'yellow');
+
+    /* 9 ── Geo-Social Sentiment  (max 15) */
+    const gs=geoScore;
+    if(gs>=68)      add('GeoAI',`${gs}%`,'BUY',15,`Geo-sentiment ${gs}% — strongly bullish macro 🌏`,'green');
+    else if(gs<=32) add('GeoAI',`${gs}%`,'SELL',15,`Geo-sentiment ${gs}% — strongly bearish macro 🌍`,'red');
+    else if(gs>=55) add('GeoAI',`${gs}%`,'BUY',8,`Geo-sentiment ${gs}% — mildly bullish`,'green');
+    else if(gs<=45) add('GeoAI',`${gs}%`,'SELL',8,`Geo-sentiment ${gs}% — mildly bearish`,'red');
+    else            add('GeoAI',`${gs}%`,'HOLD',0,`Geo-sentiment ${gs}% — neutral`,'yellow');
+
+    /* 10 ── Max Pain Gravity  (max 10) */
+    const mpd=+(spot-maxPain).toFixed(0);
+    if(Math.abs(mpd)<40)   add('MaxPain',maxPain,'HOLD',0,`At Max Pain ${maxPain} — pinning likely on expiry`,'yellow');
+    else if(mpd>200)       add('MaxPain',maxPain,'SELL',10,`${mpd}pts ABOVE Max Pain — strong gravity pull down`,'red');
+    else if(mpd<-200)      add('MaxPain',maxPain,'BUY',10,`${Math.abs(mpd)}pts BELOW Max Pain — gravity pull up`,'green');
+    else if(mpd>0)         add('MaxPain',maxPain,'SELL',5,`${mpd}pts above MaxPain ${maxPain} — mild pull down`,'red');
+    else                   add('MaxPain',maxPain,'BUY',5,`${Math.abs(mpd)}pts below MaxPain ${maxPain} — mild pull up`,'green');
+
+    /* ── FINAL SCORE ── */
+    const total=bull+bear||1, net=bull-bear;
+    const rawStr=Math.abs(net)/total;
+    const strength=Math.min(10,Math.ceil(rawStr*11));
+    const signal=bull>bear+18?'BUY':bear>bull+18?'SELL':'HOLD';
+    const confidence=Math.min(95,Math.round(50+rawStr*48));
+    const result={signal,strength,confidence,indicators:inds,bullScore:bull,bearScore:bear};
+
+    /* record history on signal change */
+    if(this.current.signal!==signal&&strength>=6){
+      this.history.unshift({...result,spot:spot.toFixed(0),
+        time:new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})});
+      if(this.history.length>6) this.history.pop();
+    }
+    this.current=result;
+    return result;
+  }
+};
+
 /* ── AI SENTIMENT ENGINE ───────────────────────────── */
 const AIEngine = {
   score: 62,
@@ -667,28 +853,159 @@ function updateHeaderTickers() {
   document.getElementById('stat-low') && (document.getElementById('stat-low').textContent = NiftyEngine.low.toFixed(2));
 }
 
+/* ── ENHANCED MULTI-FACTOR SIGNAL UPDATE ─────────────── */
 function updateSignals() {
   const spot = NiftyEngine.current;
-  const atm = OptionsEngine.getATM(spot);
-  const chg = NiftyEngine.getChangePct();
-  const signal = chg>0.5?'buy':chg<-0.5?'sell':'hold';
-  const support = atm - (chg<0?200:100);
-  const resist = atm + (chg>0?200:100);
+  const bars = NiftyEngine.priceHistory;
+  if(bars.length < 30) return;
 
-  document.getElementById('sig-signal') && (document.getElementById('sig-signal').innerHTML = `<span class="sig-badge ${signal}">${signal.toUpperCase()}</span>`);
-  document.getElementById('sig-support') && (document.getElementById('sig-support').textContent = support.toFixed(0));
-  document.getElementById('sig-resist') && (document.getElementById('sig-resist').textContent = resist.toFixed(0));
-  document.getElementById('sig-vix') && (document.getElementById('sig-vix').textContent = (12.5+(Math.random()-0.5)*2).toFixed(2));
+  /* compute all technical indicators */
+  const tech = TechEngine.compute(bars);
 
-  const rec = AIEngine.recommendation;
-  const airBadgeEl = document.getElementById('air-badge');
-  if(airBadgeEl){
-    airBadgeEl.textContent = rec.type;
-    airBadgeEl.className = `air-badge ${rec.type==='CALL'?'air-call':'air-put'}`;
+  /* build options chain for PCR/MaxPain/OI levels */
+  const chain = OptionsEngine.buildChain(spot, 22);
+  const pcr   = OptionsEngine.getPCR(chain);
+  const maxPain = OptionsEngine.getMaxPain(chain);
+  const levels  = TechEngine.oi_levels(spot, chain);
+  const geoScore = AIEngine.score;
+
+  /* run 10-factor weighted evaluation */
+  const sig = SignalEngine.eval(spot, tech, pcr, maxPain, geoScore);
+
+  /* ── Main signal badge ── */
+  const sigEl = document.getElementById('sig-signal');
+  if(sigEl){
+    const cls = sig.signal==='BUY'?'buy':sig.signal==='SELL'?'sell':'hold';
+    const strong = sig.strength>=7?' sig-strong':'';
+    sigEl.innerHTML = `<span class="sig-badge ${cls}${strong}">${sig.signal==='BUY'?'▲ BUY CALL':sig.signal==='SELL'?'▼ BUY PUT':'◆ HOLD'}</span>`;
   }
-  document.getElementById('air-text') && (document.getElementById('air-text').textContent =
-    `${rec.type} ${rec.strike}${rec.type!=='STRADDLE'?rec.type==='CALL'?'CE':'PE':''} | Expiry: ${rec.expiry}${rec.premium?` | LTP: ₹${rec.premium.toFixed(1)}`:''}  — Geopolitical sentiment ${AIEngine.getSentimentLabel().toLowerCase()}`);
-  document.getElementById('air-conf') && (document.getElementById('air-conf').textContent = `AI Confidence: ${rec.confidence}%`);
+
+  /* ── Strength bar (10 mini bars) ── */
+  const strEl = document.getElementById('sig-strength');
+  if(strEl){
+    const bcls = sig.signal==='BUY'?'str-bull':sig.signal==='SELL'?'str-bear':'str-hold';
+    const barsHtml = Array.from({length:10},(_,i)=>`<div class="str-bar ${i<sig.strength?bcls:''}"></div>`).join('');
+    strEl.innerHTML = `<div class="str-bars">${barsHtml}</div><span class="str-num">${sig.strength}/10</span>`;
+  }
+
+  /* ── Confidence + ratio header ── */
+  const confHdr = document.getElementById('sig-conf-header');
+  if(confHdr){
+    const ratio = `${sig.bullScore}:${sig.bearScore}`;
+    const dir = sig.signal==='BUY'?'BULL 🟢':sig.signal==='SELL'?'BEAR 🔴':'NEUTRAL 🟡';
+    confHdr.textContent = `CONF: ${sig.confidence}% | STR: ${sig.strength}/10 | ${dir} (${ratio})`;
+    confHdr.style.color = sig.signal==='BUY'?'var(--green)':sig.signal==='SELL'?'var(--red)':'var(--orange)';
+  }
+
+  /* ── OI-based key levels ── */
+  const $=id=>document.getElementById(id);
+  $('sig-support')  && ($('sig-support').textContent  = levels.s1.toLocaleString('en-IN'));
+  $('sig-support2') && ($('sig-support2').textContent = levels.s2.toLocaleString('en-IN'));
+  $('sig-resist')   && ($('sig-resist').textContent   = levels.r1.toLocaleString('en-IN'));
+  $('sig-resist2')  && ($('sig-resist2').textContent  = levels.r2.toLocaleString('en-IN'));
+  $('sig-atm')      && ($('sig-atm').textContent      = OptionsEngine.getATM(spot).toLocaleString('en-IN'));
+
+  /* ── India VIX (derived from BB width) ── */
+  const vixEst = (tech.bb.width*0.9+Math.random()*0.5+10.5).toFixed(2);
+  $('sig-vix') && ($('sig-vix').textContent = vixEst);
+
+  /* ── Indicator cards strip ── */
+  renderIndicatorCards(sig.indicators);
+
+  /* ── Signal history ── */
+  renderSignalHistory();
+
+  /* ── AI recommendation ── */
+  updateAIRec(sig, spot, chain);
+
+  /* ── Panel glow based on signal strength ── */
+  const panel = document.getElementById('signals');
+  if(panel){
+    if(sig.signal==='BUY'&&sig.strength>=7)
+      panel.style.boxShadow='inset 0 0 40px rgba(0,230,118,.07),0 0 20px rgba(0,230,118,.05)';
+    else if(sig.signal==='SELL'&&sig.strength>=7)
+      panel.style.boxShadow='inset 0 0 40px rgba(255,23,68,.07),0 0 20px rgba(255,23,68,.05)';
+    else panel.style.boxShadow='none';
+  }
+
+  /* ── Alert toast for very strong signal ── */
+  if(sig.strength>=9&&sig.signal!=='HOLD'&&Math.random()<0.12){
+    const aligned=sig.indicators.filter(i=>i.s===sig.signal).map(i=>i.name).join(', ');
+    showToast(`🎯 STRONG ${sig.signal} SIGNAL — ${sig.strength}/10`,
+      `Confidence ${sig.confidence}% | Aligned: ${aligned}`);
+  }
+}
+
+/* ── INDICATOR CARDS STRIP ──────────────────────────── */
+function renderIndicatorCards(indicators) {
+  const el = document.getElementById('indicator-cards');
+  if(!el) return;
+  const COL={green:'var(--green)',red:'var(--red)',yellow:'var(--orange)'};
+  const BG ={green:'rgba(0,230,118,.12)',red:'rgba(255,23,68,.12)',yellow:'rgba(255,145,0,.1)'};
+  const BO ={green:'rgba(0,230,118,.35)',red:'rgba(255,23,68,.35)',yellow:'rgba(255,145,0,.3)'};
+  el.innerHTML = indicators.map(ind=>`
+    <div class="ind-card" style="border-color:${BO[ind.c]||BO.yellow};background:${BG[ind.c]||BG.yellow}" title="${ind.reason}">
+      <div class="ind-name">${ind.name}</div>
+      <div class="ind-val" style="color:${COL[ind.c]}">${ind.val}</div>
+      <div class="ind-sig" style="color:${COL[ind.c]}">${ind.s==='BUY'?'▲':ind.s==='SELL'?'▼':'◆'} ${ind.s}</div>
+    </div>`).join('');
+}
+
+/* ── SIGNAL HISTORY ─────────────────────────────────── */
+function renderSignalHistory() {
+  const el = document.getElementById('sig-history');
+  if(!el) return;
+  if(!SignalEngine.history.length){
+    el.innerHTML='<div style="font-size:10px;color:var(--text3);padding:4px 0">No signals yet — waiting for confluence...</div>';
+    return;
+  }
+  const COLS={BUY:'var(--green)',SELL:'var(--red)',HOLD:'var(--orange)'};
+  el.innerHTML = SignalEngine.history.slice(0,5).map(h=>`
+    <div class="sh-item">
+      <span class="sh-time">${h.time}</span>
+      <span class="sh-sig" style="color:${COLS[h.signal]}">${h.signal==='BUY'?'▲':h.signal==='SELL'?'▼':'◆'} ${h.signal}</span>
+      <span class="sh-conf">${h.confidence}%</span>
+      <span class="sh-price mono">${h.spot}</span>
+      <span class="sh-str" style="color:${COLS[h.signal]}">${h.strength}/10</span>
+    </div>`).join('');
+}
+
+/* ── AI RECOMMENDATION (from SignalEngine) ──────────── */
+function updateAIRec(sig, spot, chain) {
+  const atm = OptionsEngine.getATM(spot);
+  let strike, type, expiry='27 Mar', premium;
+
+  if(sig.signal==='BUY'){
+    /* Strong: buy ATM CE; moderate: buy ATM+100 CE */
+    strike = sig.strength>=8 ? atm : atm+100;
+    type   = 'CALL';
+  } else if(sig.signal==='SELL'){
+    strike = sig.strength>=8 ? atm : atm-100;
+    type   = 'PUT';
+  } else {
+    /* Neutral: suggest the side with more weight */
+    strike = atm;
+    type   = sig.bullScore>sig.bearScore ? 'CALL' : 'PUT';
+  }
+
+  const row = chain.find(r=>r.strike===strike) || chain[Math.floor(chain.length/2)];
+  if(row) premium = type==='CALL' ? row.callPrice : row.putPrice;
+
+  /* badge */
+  const badgeEl = document.getElementById('air-badge');
+  if(badgeEl){ badgeEl.textContent=type; badgeEl.className=`air-badge ${type==='CALL'?'air-call':'air-put'}`; }
+
+  /* description */
+  const top3 = sig.indicators.filter(i=>i.s===sig.signal).slice(0,3).map(i=>i.name).join(' + ');
+  const airTxt = document.getElementById('air-text');
+  if(airTxt) airTxt.textContent =
+    `${type} ${strike}${type==='CALL'?'CE':'PE'} | Exp: ${expiry} | LTP: ₹${premium?.toFixed(1)||'--'} | ${top3||'mixed signals'} aligned | Bull ${sig.bullScore} vs Bear ${sig.bearScore}`;
+
+  /* confidence */
+  const airConf = document.getElementById('air-conf');
+  if(airConf) airConf.textContent = `AI Confidence: ${sig.confidence}% | Signal Strength: ${sig.strength}/10`;
+
+  AIEngine.recommendation = {type, strike, expiry, confidence:sig.confidence, premium};
 }
 
 function updateSentimentPanel() {
@@ -798,8 +1115,10 @@ function addNewPost() {
 /* ── INIT ─────────────────────────────────────────── */
 window.GeoPulse = {
   NiftyEngine,BankNiftyEngine,OptionsEngine,AIEngine,GeoEngine,FeedEngine,
+  TechEngine,SignalEngine,
   initChart,renderFeed,updateHeaderTickers,updateSignals,updateSentimentPanel,
   updateGeoRisk,updateEvents,updateOptMini,showToast,INFLUENCERS,POST_POOL,
+  renderIndicatorCards,renderSignalHistory,updateAIRec,
   tick,addNewPost,updateClock,
   init() {
     NiftyEngine.init();

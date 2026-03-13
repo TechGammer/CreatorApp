@@ -140,42 +140,85 @@
         <div id="chart-container"></div>
       </div>
 
-      <!-- Signals Panel -->
+      <!-- ═══ ENHANCED SIGNAL ENGINE PANEL ═══════════════ -->
       <div id="signals">
-        <div class="ph" style="padding:5px 11px">
+
+        <!-- Header row -->
+        <div class="ph" style="padding:5px 11px;gap:8px">
           <i class="fa fa-robot" style="color:var(--purple)"></i>
-          <span class="ph-title" style="color:var(--purple)">AI Signal Engine</span>
-          <div class="live-tag">PROCESSING</div>
+          <span class="ph-title" style="color:var(--purple)">AI Signal Engine — 10 Indicators</span>
+          <div class="live-tag">COMPUTING</div>
+          <span id="sig-conf-header" style="margin-left:auto;font-size:10px;font-family:var(--mono);font-weight:700;color:var(--cyan)">
+            CONF: --% | STR: --/10
+          </span>
         </div>
-        <div class="sig-grid">
-          <div class="sig-card">
-            <span class="sig-lbl">AI Signal</span>
-            <div id="sig-signal"><span class="sig-badge buy">BUY</span></div>
-            <span class="sig-sub" id="sig-strength">Moderate confidence</span>
+
+        <!-- Indicator Cards Strip (10 indicators) -->
+        <div id="indicator-cards" class="indicator-cards-strip"></div>
+
+        <!-- Main signal row -->
+        <div class="sig-main-row">
+
+          <!-- LEFT: signal badge + strength -->
+          <div class="sig-main-left">
+            <div id="sig-signal">
+              <span class="sig-badge hold">◆ HOLD</span>
+            </div>
+            <div id="sig-strength" class="sig-strength-wrap">
+              <div class="str-bars">
+                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
+                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
+                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
+                <div class="str-bar"></div>
+              </div>
+              <span class="str-num">--/10</span>
+            </div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Signal Strength</div>
           </div>
-          <div class="sig-card">
-            <span class="sig-lbl">Key Support</span>
-            <span class="sig-val text-green" id="sig-support">22,350</span>
-            <span class="sig-sub">Strong put OI buildup</span>
+
+          <!-- CENTER: OI-based key levels -->
+          <div class="sig-levels">
+            <div class="sig-level">
+              <span class="sl-lbl">S2 (Put Wall)</span>
+              <span class="sl-val" style="color:var(--green)" id="sig-support2">--</span>
+            </div>
+            <div class="sig-level">
+              <span class="sl-lbl">S1 (Put OI)</span>
+              <span class="sl-val" style="color:var(--green)" id="sig-support">--</span>
+            </div>
+            <div class="sig-level" style="border:1px solid rgba(0,212,255,.3);background:rgba(0,212,255,.06);border-radius:4px;padding:3px 6px">
+              <span class="sl-lbl" style="color:var(--cyan)">ATM</span>
+              <span class="sl-val" style="color:var(--cyan)" id="sig-atm">--</span>
+            </div>
+            <div class="sig-level">
+              <span class="sl-lbl">R1 (Call OI)</span>
+              <span class="sl-val" style="color:var(--red)" id="sig-resist">--</span>
+            </div>
+            <div class="sig-level">
+              <span class="sl-lbl">R2 (Call Wall)</span>
+              <span class="sl-val" style="color:var(--red)" id="sig-resist2">--</span>
+            </div>
           </div>
-          <div class="sig-card">
-            <span class="sig-lbl">Key Resistance</span>
-            <span class="sig-val text-red" id="sig-resist">22,600</span>
-            <span class="sig-sub">Heavy call writing</span>
-          </div>
-          <div class="sig-card">
-            <span class="sig-lbl">India VIX</span>
-            <span class="sig-val text-orange" id="sig-vix">13.82</span>
-            <span class="sig-sub">Fear index — low</span>
+
+          <!-- RIGHT: VIX + signal history -->
+          <div class="sig-main-right">
+            <div style="text-align:center;padding:5px 10px;background:var(--bg-card);border-radius:4px;border:1px solid var(--border)">
+              <div style="font-size:8px;text-transform:uppercase;color:var(--text3);letter-spacing:.5px">India VIX</div>
+              <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:var(--orange)" id="sig-vix">--</div>
+              <div style="font-size:8px;color:var(--text3)">Fear Index</div>
+            </div>
           </div>
         </div>
+
+        <!-- AI Rec bar -->
         <div id="ai-rec">
           <span class="air-lbl"><i class="fa fa-brain"></i> AI REC</span>
           <span class="air-badge air-call" id="air-badge">CALL</span>
-          <span class="air-txt" id="air-text">Loading AI analysis...</span>
+          <span class="air-txt" id="air-text">Computing multi-factor signal...</span>
           <span class="air-conf" id="air-conf">AI Confidence: --%</span>
         </div>
-      </div>
+
+      </div><!-- end #signals -->
     </div>
 
     <!-- ── RIGHT: AI ANALYSIS ─────────────────────── -->
@@ -226,6 +269,21 @@
           <div class="live-tag" style="margin-left:auto">LIVE</div>
         </div>
         <div id="events-list" class="events-list pb" style="overflow-y:auto"></div>
+      </div>
+
+      <!-- Signal History -->
+      <div class="rsec" style="flex-shrink:0">
+        <div class="ph">
+          <i class="fa fa-history" style="color:var(--yellow)"></i>
+          <span class="ph-title" style="color:var(--yellow)">Signal History</span>
+          <span style="margin-left:auto;font-size:9px;color:var(--text3)">Last 5 signals</span>
+        </div>
+        <div style="padding:6px 12px">
+          <div style="display:grid;grid-template-columns:28px 1fr 32px 55px 28px;gap:3px;font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--border-dim)">
+            <span>Time</span><span>Signal</span><span>Conf</span><span>Spot</span><span>Str</span>
+          </div>
+          <div id="sig-history"></div>
+        </div>
       </div>
 
       <!-- Mini Options Chain -->
