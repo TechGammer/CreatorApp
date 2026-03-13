@@ -1130,3 +1130,852 @@ window.GeoPulse = {
     setInterval(addNewPost, 7000+Math.random()*5000);
   }
 };
+
+/* ═══════════════════════════════════════════════════════
+   INDIA TRADER PRO — MULTI-INDEX & INTERACTION ENGINES
+   ═══════════════════════════════════════════════════════ */
+
+/* ── 12 INDIAN INDICES ──────────────────────────────── */
+const INDICES = [
+  {id:'nifty50',   name:'NIFTY 50',    sym:'NIFTY',  base:22478.50, prev:22312.30, lot:50,  step:50,  color:'#00e5ff'},
+  {id:'banknifty', name:'BANKNIFTY',   sym:'BNIFTY', base:48234.70, prev:47892.30, lot:15,  step:100, color:'#c77dff'},
+  {id:'finnifty',  name:'FINNIFTY',    sym:'FINNIF', base:21567.30, prev:21423.60, lot:40,  step:50,  color:'#ff9100'},
+  {id:'midcpnifty',name:'MIDCPNIFTY',  sym:'MIDCP',  base:12384.50, prev:12275.80, lot:75,  step:25,  color:'#ffab40'},
+  {id:'sensex',    name:'SENSEX',      sym:'SENSEX', base:73847.20, prev:73248.90, lot:10,  step:100, color:'#ff6f00'},
+  {id:'niftyit',   name:'NIFTY IT',    sym:'NIFTIT', base:38456.70, prev:37982.40, lot:25,  step:100, color:'#64ffda'},
+  {id:'niftyauto', name:'NIFTY AUTO',  sym:'NIFTAU', base:22134.60, prev:21978.30, lot:25,  step:50,  color:'#80d8ff'},
+  {id:'niftyphrm', name:'NIFTY PHARMA',sym:'NIFTPH', base:22867.40, prev:22543.20, lot:25,  step:50,  color:'#b9f6ca'},
+  {id:'niftymetal',name:'NIFTY METAL', sym:'NIFTME', base:9234.80,  prev:9123.40,  lot:50,  step:50,  color:'#ffe57f'},
+  {id:'niftyfmcg', name:'NIFTY FMCG',  sym:'NIFTFM', base:53247.80, prev:52876.30, lot:10,  step:100, color:'#ffd180'},
+  {id:'niftyrlt',  name:'NIFTY REALTY',sym:'NIFTRL', base:1034.70,  prev:1018.40,  lot:100, step:5,   color:'#ea80fc'},
+  {id:'niftyenrg', name:'NIFTY ENERGY',sym:'NIFTEN', base:42356.80, prev:41987.20, lot:25,  step:100, color:'#ff6d00'},
+];
+
+/* ── INDEX STATE ENGINE ─────────────────────────────── */
+const IndexState = {
+  states:{}, current:'nifty50',
+  init() {
+    INDICES.forEach(idx=>{
+      if(idx.id==='nifty50'){
+        this.states[idx.id]={...idx,current:NiftyEngine.current,open:NiftyEngine.open,high:NiftyEngine.high,low:NiftyEngine.low,history:NiftyEngine.priceHistory,chain:null,pcr:null,maxPain:null};
+        return;
+      }
+      let price=idx.base+(Math.random()-0.5)*idx.base*0.005;
+      const history=[];
+      const istMs=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'})).setHours(9,15,0,0);
+      for(let i=0;i<270;i++){
+        const open=price, drift=(Math.random()-0.495)*0.0018*price, noise=(Math.random()-0.5)*0.0012*price;
+        const close=open+drift+noise, hl=Math.abs(drift+noise)*1.8;
+        const high=Math.max(open,close)+Math.random()*hl, low=Math.min(open,close)-Math.random()*hl;
+        history.push({time:Math.floor((istMs+i*60000)/1000),open:+open.toFixed(2),high:+high.toFixed(2),low:+low.toFixed(2),close:+close.toFixed(2),volume:Math.round(Math.random()*400000+50000)});
+        price=close;
+      }
+      this.states[idx.id]={...idx,current:price,open:history[0]?.open||idx.prev,high:Math.max(...history.map(b=>b.high)),low:Math.min(...history.map(b=>b.low)),history,chain:null,pcr:null,maxPain:null};
+    });
+  },
+  tick() {
+    INDICES.forEach(idx=>{
+      const st=this.states[idx.id]; if(!st) return;
+      if(idx.id==='nifty50'){st.current=NiftyEngine.current;st.high=NiftyEngine.high;st.low=NiftyEngine.low;return;}
+      const ch=(Math.random()-0.495)*0.0016*st.current;
+      st.current=Math.max(st.current+ch,st.prev*0.88);
+      st.high=Math.max(st.high,st.current); st.low=Math.min(st.low,st.current);
+      const nowT=Math.floor(Date.now()/1000), last=st.history[st.history.length-1];
+      if(last&&nowT-last.time<60){last.close=+st.current.toFixed(2);last.high=Math.max(last.high,last.close);last.low=Math.min(last.low,last.close);}
+      else{st.history.push({time:nowT,open:+st.current.toFixed(2),high:+st.current.toFixed(2),low:+st.current.toFixed(2),close:+st.current.toFixed(2),volume:Math.round(Math.random()*200000+30000)});if(st.history.length>300)st.history.shift();}
+    });
+  },
+  getState(id){return this.states[id]||this.states['nifty50'];},
+  getCurrent(){return this.getState(this.current);},
+  pct(id){const st=this.getState(id);return ((st.current-st.prev)/st.prev)*100;},
+  buildChain(id){const st=this.getState(id);const chain=OptionsEngine.buildChain(st.current,20);st.chain=chain;st.pcr=OptionsEngine.getPCR(chain);st.maxPain=OptionsEngine.getMaxPain(chain);return chain;},
+};
+
+/* ── PAPER TRADE ENGINE ─────────────────────────────── */
+const PaperTradeEngine = {
+  balance:1000000, positions:[], idCounter:0,
+  buy(idxId,type,strike,qty){
+    const st=IndexState.getState(idxId);
+    const T=6/365, iv=OptionsEngine.getIV(st.current,strike,T);
+    const entryPx=OptionsEngine.getPrice(st.current,strike,type==='CE'?'call':'put',iv,T);
+    if(entryPx<=0) return null;
+    const pos={id:++this.idCounter,idxId,type,strike,qty,entryPx:+entryPx.toFixed(2),entryTime:Date.now(),lot:st.lot};
+    this.positions.push(pos);
+    return pos;
+  },
+  close(id){this.positions=this.positions.filter(p=>p.id!==id);},
+  getMarkPx(pos){
+    const st=IndexState.getState(pos.idxId);
+    const T=Math.max(0.5/365,5/365), iv=OptionsEngine.getIV(st.current,pos.strike,T);
+    return +OptionsEngine.getPrice(st.current,pos.strike,pos.type==='CE'?'call':'put',iv,T).toFixed(2);
+  },
+  getPnL(pos){return +(this.getMarkPx(pos)-pos.entryPx)*pos.qty*pos.lot;},
+  totalPnL(){return this.positions.reduce((a,p)=>a+this.getPnL(p),0);},
+};
+
+/* ── ALERT ENGINE ───────────────────────────────────── */
+const AlertEngine = {
+  alerts:[], idCounter:0,
+  add(idxId,cond,price){
+    this.alerts.push({id:++this.idCounter,idxId,cond,price:+price,fired:false});
+  },
+  remove(id){this.alerts=this.alerts.filter(a=>a.id!==id);},
+  check(){
+    this.alerts.forEach(a=>{
+      if(a.fired) return;
+      const st=IndexState.getState(a.idxId);
+      const idx=INDICES.find(i=>i.id===a.idxId);
+      const hit=(a.cond==='above'&&st.current>=a.price)||(a.cond==='below'&&st.current<=a.price);
+      if(hit){
+        a.fired=true;
+        showProToast(`🔔 Alert: ${idx?.name||a.idxId}`,`${a.cond==='above'?'Crossed above':'Dropped below'} ₹${a.price.toLocaleString('en-IN')}`,'info',5000);
+      }
+    });
+  },
+};
+
+/* ── OPPORTUNITY SCANNER ─────────────────────────────── */
+const Scanner = {
+  scan(){
+    return INDICES.map(idx=>{
+      const st=IndexState.getState(idx.id);
+      if(st.history.length<30) return {idx,score:5,signal:'HOLD',reason:'Insufficient data'};
+      const bars=st.history.slice(-60);
+      const tech=TechEngine.compute(bars);
+      const chain=OptionsEngine.buildChain(st.current,10);
+      const pcr=OptionsEngine.getPCR(chain);
+      const mp=OptionsEngine.getMaxPain(chain);
+      const sig=SignalEngine.eval(st.current,tech,pcr,mp,AIEngine.score);
+      return {idx,state:st,signal:sig.signal,strength:sig.strength,confidence:sig.confidence,
+        pct:IndexState.pct(idx.id),
+        reason:sig.indicators.filter(i=>i.s===sig.signal).slice(0,2).map(i=>i.name).join(' + ')||'Mixed',
+      };
+    }).sort((a,b)=>b.strength-a.strength);
+  }
+};
+
+/* ── TOAST SYSTEM ───────────────────────────────────── */
+function showProToast(title,msg,type='info',dur=4000){
+  const el=document.getElementById('alert-badge'); if(!el) return;
+  const d=document.createElement('div');
+  d.className=`alert-toast ${type==='bull'?'bull':type==='bear'?'bear':'info'}`;
+  d.innerHTML=`<span class="toast-close" onclick="this.parentElement.remove()">×</span><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div>`;
+  el.appendChild(d);
+  setTimeout(()=>d.remove(),dur);
+}
+
+/* ── VIEW SWITCHER ──────────────────────────────────── */
+function showView(name){
+  ['dashboard','scanner','paper','compare'].forEach(v=>{
+    const el=document.getElementById('view-'+v); if(el) el.style.display='none';
+  });
+  const target=document.getElementById('view-'+name);
+  if(target) target.style.display='flex';
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{
+    const views=['dashboard','scanner','paper','compare'];
+    t.classList.toggle('active',views[i]===name);
+  });
+  if(name==='scanner') renderScannerFull();
+  if(name==='paper') renderPaperFull();
+  if(name==='compare') updateCompare();
+}
+
+/* ── INDEX TABS ─────────────────────────────────────── */
+function renderIndexTabs(){
+  const el=document.getElementById('index-tabs'); if(!el) return;
+  el.innerHTML=INDICES.map(idx=>{
+    const pct=IndexState.pct(idx.id);
+    const up=pct>=0;
+    return `<div class="idx-tab${idx.id===IndexState.current?' active':''}" onclick="switchIndex('${idx.id}')" style="${idx.id===IndexState.current?`border-color:${idx.color}40;color:${idx.color}`:''}">
+      <span>${idx.name}</span>
+      <span class="tab-chg ${up?'up':'dn'}">${up?'▲':'▼'}${Math.abs(pct).toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function switchIndex(id){
+  IndexState.current=id;
+  renderIndexTabs();
+  updateHero();
+  updateSignalsNew();
+  // Rebuild chart for new index
+  const st=IndexState.getCurrent();
+  if(NiftyEngine.seriesCandle&&NiftyEngine.chart){
+    NiftyEngine.seriesCandle.setData(st.history);
+    NiftyEngine.chart.timeScale().fitContent();
+    const idx=INDICES.find(i=>i.id===id);
+    const label=document.getElementById('chart-label');
+    if(label) label.textContent=`${idx?.name||id} · 1MIN · OHLCV`;
+    NiftyEngine.chart.applyOptions({layout:{background:{color:'#04080f'}}});
+  }
+}
+
+/* ── TICKER TAPE ────────────────────────────────────── */
+function renderTicker(){
+  const el=document.getElementById('ticker-track'); if(!el) return;
+  const items=INDICES.map(idx=>{
+    const st=IndexState.getState(idx.id);
+    const pct=IndexState.pct(idx.id);
+    const up=pct>=0;
+    return `<div class="tick-item">
+      <span class="tick-name">${idx.name}</span>
+      <span class="tick-val">${st.current.toFixed(2)}</span>
+      <span class="tick-chg ${up?'up':'dn'}">${up?'▲':'▼'}${Math.abs(pct).toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+  el.innerHTML=items+items; // duplicate for seamless loop
+}
+
+/* ── HERO DISPLAY ───────────────────────────────────── */
+function updateHero(){
+  const idx=INDICES.find(i=>i.id===IndexState.current);
+  const st=IndexState.getCurrent();
+  const chg=st.current-st.prev;
+  const pct=IndexState.pct(IndexState.current);
+  const up=chg>=0;
+  const f=v=>v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fv=v=>(v/1e5).toFixed(1)+'L';
+  const $=id=>document.getElementById(id);
+  $('hero-idx-name')&&($('hero-idx-name').textContent=idx?.name||'');
+  if($('hero-price')){$('hero-price').textContent=f(st.current);$('hero-price').style.color=up?'var(--green)':'var(--red)';}
+  if($('hero-chg')){$('hero-chg').textContent=`${up?'+':''}${f(chg)} (${up?'+':''}${pct.toFixed(2)}%)`;$('hero-chg').className=`hero-chg ${up?'up':'dn'}`;}
+  $('hero-high')&&($('hero-high').textContent=f(st.high));
+  $('hero-low')&&($('hero-low').textContent=f(st.low));
+  const vol=st.history.reduce((a,b)=>a+b.volume,0);
+  $('hero-vol')&&($('hero-vol').textContent=fv(vol));
+  const chain=IndexState.buildChain(IndexState.current);
+  const pcr=st.pcr;
+  $('hero-pcr')&&($('hero-pcr').textContent=pcr?.toFixed(2)||'—');
+  $('hero-iv')&&($('hero-iv').textContent=(OptionsEngine.getIV(st.current,OptionsEngine.getATM(st.current),7/365)*100).toFixed(1)+'%');
+}
+
+/* ── EXPIRY COUNTDOWN ───────────────────────────────── */
+function updateExpiryCountdown(){
+  const now=new Date();
+  const ist=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  // Find next Thursday 3:30 PM IST
+  const nextThu=new Date(ist);
+  const day=ist.getDay();
+  const daysToThu=((4-day+7)%7)||7; // 4=Thursday; if today is Thu, go next Thu
+  nextThu.setDate(ist.getDate()+daysToThu);
+  nextThu.setHours(15,30,0,0);
+  const diff=nextThu-ist;
+  if(diff<=0){
+    ['exp-d','exp-h','exp-m','exp-s'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='00';});
+    return;
+  }
+  const d=Math.floor(diff/86400000);
+  const h=Math.floor((diff%86400000)/3600000);
+  const m=Math.floor((diff%3600000)/60000);
+  const s=Math.floor((diff%60000)/1000);
+  const pad=n=>String(n).padStart(2,'0');
+  const $=id=>document.getElementById(id);
+  $('exp-d')&&($('exp-d').textContent=pad(d));
+  $('exp-h')&&($('exp-h').textContent=pad(h));
+  $('exp-m')&&($('exp-m').textContent=pad(m));
+  $('exp-s')&&($('exp-s').textContent=pad(s));
+}
+
+/* ── MARKET MOOD METER ──────────────────────────────── */
+function drawMoodMeter(score){
+  const canvas=document.getElementById('mood-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const cx=110,cy=110,r=75,lw=14;
+  ctx.clearRect(0,0,220,120);
+  // Arc background
+  const startAngle=Math.PI, endAngle=2*Math.PI;
+  ctx.beginPath();ctx.arc(cx,cy,r,startAngle,endAngle);
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=lw+2;ctx.stroke();
+  // Colored arc
+  const gradient=ctx.createLinearGradient(cx-r,cy,cx+r,cy);
+  gradient.addColorStop(0,'#ff1744');gradient.addColorStop(0.35,'#ff9100');
+  gradient.addColorStop(0.5,'#ffd740');gradient.addColorStop(0.65,'#69f0ae');
+  gradient.addColorStop(1,'#00e676');
+  const fillAngle=startAngle+(endAngle-startAngle)*(Math.min(100,Math.max(0,score))/100);
+  ctx.beginPath();ctx.arc(cx,cy,r,startAngle,fillAngle);
+  ctx.strokeStyle=gradient;ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke();
+  // Needle
+  const ang=startAngle+(endAngle-startAngle)*(score/100);
+  const nx=cx+Math.cos(ang)*(r-18), ny=cy+Math.sin(ang)*(r-18);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(nx,ny);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,5,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();
+  // Score
+  ctx.font='bold 22px JetBrains Mono,monospace';ctx.fillStyle='#fff';ctx.textAlign='center';
+  ctx.fillText(Math.round(score),cx,cy-20);
+  // Label
+  const lbl=score>=80?'Extreme Greed':score>=60?'Greed':score>=40?'Neutral':score>=20?'Fear':'Extreme Fear';
+  const lcolor=score>=60?'#00e676':score>=40?'#ffd740':'#ff1744';
+  const lel=document.getElementById('mood-label'); if(lel){lel.textContent=lbl;lel.style.color=lcolor;}
+  const vel=document.getElementById('mood-value'); if(vel) vel.textContent=`${Math.round(score)} / 100`;
+}
+
+function updateMoodMeter(){
+  // Composite mood: 40% AIEngine.score + 30% SignalEngine bullRatio + 30% PCR
+  const sig=SignalEngine.current;
+  const sigScore=sig.signal==='BUY'?60+sig.strength*4:sig.signal==='SELL'?40-sig.strength*4:50;
+  const st=IndexState.getCurrent();
+  const pcrScore=st.pcr?Math.min(100,(st.pcr/1.5)*100):50;
+  const mood=(AIEngine.score*0.4+sigScore*0.3+pcrScore*0.3);
+  drawMoodMeter(Math.min(100,Math.max(0,mood)));
+}
+
+/* ── NEW SIGNAL UPDATE (for new HTML IDs) ───────────── */
+function updateSignalsNew(){
+  const st=IndexState.getCurrent();
+  const bars=st.history;
+  if(bars.length<30) return;
+  const tech=TechEngine.compute(bars);
+  const chain=IndexState.buildChain(IndexState.current);
+  const pcr=st.pcr||1;
+  const maxPain=st.maxPain||OptionsEngine.getATM(st.current);
+  const levels=TechEngine.oi_levels(st.current,chain);
+  const sig=SignalEngine.eval(st.current,tech,pcr,maxPain,AIEngine.score);
+  const $=id=>document.getElementById(id);
+
+  // Signal badge
+  const sigEl=$('sig-signal');
+  if(sigEl){
+    const strong=sig.strength>=7;
+    sigEl.className=`sig-badge ${sig.signal}${strong?' sig-strong':''}`;
+    sigEl.textContent=sig.signal==='BUY'?'▲ BUY CALL':sig.signal==='SELL'?'▼ BUY PUT':'◆ HOLD';
+  }
+
+  // Strength bars
+  const strEl=$('sig-strength');
+  if(strEl){
+    const bcls=sig.signal==='BUY'?'lit-bull':sig.signal==='SELL'?'lit-bear':'';
+    strEl.innerHTML=Array.from({length:10},(_,i)=>`<div class="str-seg${i<sig.strength&&bcls?' '+bcls:''}"></div>`).join('');
+  }
+
+  // Confidence
+  const confEl=$('sig-conf');
+  if(confEl) confEl.textContent=sig.confidence+'%';
+
+  // VIX
+  const vixEl=$('sig-vix');
+  if(vixEl) vixEl.textContent=`VIX: ${(tech.bb.width*0.9+10.5).toFixed(1)}`;
+
+  // Indicator cards
+  renderIndicatorCards(sig.indicators);
+
+  // OI levels
+  $('sl-s2')&&($('sl-s2').textContent=levels.s2.toLocaleString('en-IN'));
+  $('sl-s1')&&($('sl-s1').textContent=levels.s1.toLocaleString('en-IN'));
+  $('sl-atm')&&($('sl-atm').textContent=OptionsEngine.getATM(st.current).toLocaleString('en-IN'));
+  $('sl-r1')&&($('sl-r1').textContent=levels.r1.toLocaleString('en-IN'));
+  $('sl-r2')&&($('sl-r2').textContent=levels.r2.toLocaleString('en-IN'));
+
+  // AI Rec
+  const aiEl=$('ai-rec');
+  if(aiEl){
+    const atm=OptionsEngine.getATM(st.current);
+    const type=sig.signal==='BUY'?'CALL':sig.signal==='SELL'?'PUT':'STRADDLE';
+    const strike=sig.signal==='BUY'?atm:sig.signal==='SELL'?atm:atm;
+    const row=chain.find(r=>r.strike===strike)||chain[10];
+    const prem=row?(type==='CALL'?row.callPrice:row.putPrice):null;
+    const top3=sig.indicators.filter(i=>i.s===sig.signal).slice(0,3).map(i=>i.name).join(' + ');
+    const idx=INDICES.find(i=>i.id===IndexState.current);
+    aiEl.innerHTML=`<strong>AI (${idx?.name}):</strong> <span style="color:${sig.signal==='BUY'?'var(--green)':sig.signal==='SELL'?'var(--red)':'var(--text2)'}">${type} ${strike}${type==='CALL'?'CE':'PE'}</span> @ ₹${prem?.toFixed(1)||'—'} | Conf: <strong>${sig.confidence}%</strong> | ${top3||'Mixed signals'} | Bull ${sig.bullScore} vs Bear ${sig.bearScore}`;
+  }
+
+  // Signal history
+  renderSignalHistoryNew();
+
+  // Panel glow
+  const panel=$('signals');
+  if(panel){
+    panel.classList.toggle('bull-active',sig.signal==='BUY'&&sig.strength>=6);
+    panel.classList.toggle('bear-active',sig.signal==='SELL'&&sig.strength>=6);
+  }
+
+  // Toast on ultra-strong
+  if(sig.strength>=9&&sig.signal!=='HOLD'&&Math.random()<0.1){
+    showProToast(`🎯 ${sig.signal} SIGNAL — ${sig.strength}/10`,
+      `${INDICES.find(i=>i.id===IndexState.current)?.name} | ${sig.confidence}% confidence`,
+      sig.signal==='BUY'?'bull':'bear');
+  }
+}
+
+function renderSignalHistoryNew(){
+  const el=document.getElementById('sh-row'); if(!el) return;
+  if(!SignalEngine.history.length){el.innerHTML='<div style="font-size:10px;color:var(--text3)">Waiting for confluence...</div>';return;}
+  el.innerHTML=SignalEngine.history.slice(0,6).map(h=>{
+    const cls=h.signal==='BUY'?'sh-buy':h.signal==='SELL'?'sh-sell':'sh-hold';
+    return `<div class="sh-item ${cls}">${h.signal==='BUY'?'▲':'▼'} ${h.signal} ${h.spot} · ${h.time} · ${h.strength}/10</div>`;
+  }).join('');
+}
+
+/* ── NEW FEED RENDER ────────────────────────────────── */
+function renderNewFeed(){
+  const el=document.getElementById('feed-list'); if(!el) return;
+  const posts=FeedEngine.getFiltered().slice(0,40);
+  const cnt=document.getElementById('feed-count');
+  if(cnt) cnt.textContent=`${posts.length} posts`;
+  el.innerHTML=posts.map(post=>{
+    const inf=post.influencer;
+    const plts=inf.plt.map(p=>`<span class="post-platform plt-${p==='x'?'tw':p==='li'?'li':p==='yt'?'yt':'tg'}">${p==='x'?'𝕏':p==='li'?'in':p==='yt'?'▶':'TG'}</span>`).join('');
+    const impCls=post.sent==='bullish'?'imp-bull':post.sent==='bearish'?'imp-bear':'imp-neut';
+    return `<div class="feed-post" onclick="openInfluencerModal(${inf.id})" title="Click for details">
+      <div class="post-top">
+        <div class="post-avatar" style="background:${inf.avatar}">${inf.init}</div>
+        <div class="post-meta">
+          <div class="post-name">${inf.flag} ${inf.name}</div>
+          <div class="post-handle">${inf.handle}</div>
+        </div>
+        ${plts}
+      </div>
+      <div class="post-text">${post.txt.substring(0,160)}${post.txt.length>160?'…':''}</div>
+      <div class="post-bottom">
+        <span class="post-time">${timeAgo(post.ts)}</span>
+        <span class="post-impact ${impCls}">${post.sent}</span>
+        <span class="post-ai"><i class="fa fa-robot"></i></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── FEED PREPEND (new post added) ──────────────────── */
+function prependNewPost(post){
+  const el=document.getElementById('feed-list'); if(!el) return;
+  const inf=post.influencer;
+  const plts=inf.plt.map(p=>`<span class="post-platform plt-${p==='x'?'tw':p==='li'?'li':p==='yt'?'yt':'tg'}">${p==='x'?'𝕏':p==='li'?'in':p==='yt'?'▶':'TG'}</span>`).join('');
+  const impCls=post.sent==='bullish'?'imp-bull':post.sent==='bearish'?'imp-bear':'imp-neut';
+  const div=document.createElement('div');
+  div.className='feed-post';
+  div.setAttribute('onclick',`openInfluencerModal(${inf.id})`);
+  div.innerHTML=`<div class="post-top">
+    <div class="post-avatar" style="background:${inf.avatar}">${inf.init}</div>
+    <div class="post-meta"><div class="post-name">${inf.flag} ${inf.name}</div><div class="post-handle">${inf.handle}</div></div>
+    ${plts}
+  </div>
+  <div class="post-text">${post.txt.substring(0,160)}${post.txt.length>160?'…':''}</div>
+  <div class="post-bottom">
+    <span class="post-time">just now</span>
+    <span class="post-impact ${impCls}">${post.sent}</span>
+  </div>`;
+  el.insertBefore(div,el.firstChild);
+  if(el.children.length>60) el.lastChild?.remove();
+  const cnt=document.getElementById('feed-count');
+  if(cnt) cnt.textContent=`${Math.min(60,el.children.length)} posts`;
+  if(post.impact==='high'&&Math.random()<0.35){
+    showProToast(`${inf.flag} ${inf.name}`,post.txt.substring(0,100)+'…',post.sent==='bullish'?'bull':'bear',5000);
+  }
+}
+
+/* ── SCANNER RENDERS ────────────────────────────────── */
+function renderScannerMini(){
+  const el=document.getElementById('scanner-mini'); if(!el) return;
+  const results=Scanner.scan().slice(0,3);
+  el.innerHTML=results.map((r,i)=>{
+    const up=r.pct>=0;
+    const rankCls=i===0?'r1':i===1?'r2':'r3';
+    return `<div class="scan-item" onclick="switchIndex('${r.idx.id}')">
+      <div class="scan-top-row">
+        <span class="scan-rank ${rankCls}">${i+1}</span>
+        <span class="scan-idx">${r.idx.name}</span>
+        <span class="scan-sig ${r.signal==='BUY'?'bull':'bear'}">${r.signal==='BUY'?'▲ BUY CALL':r.signal==='SELL'?'▼ BUY PUT':'◆ HOLD'}</span>
+        <span class="scan-score">${r.strength}/10</span>
+      </div>
+      <div class="scan-detail">${up?'+':''}${r.pct.toFixed(2)}% · ${r.reason}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderScannerFull(){
+  const el=document.getElementById('scanner-full-list'); if(!el) return;
+  const results=Scanner.scan();
+  el.innerHTML=results.map((r,i)=>{
+    const up=r.pct>=0;
+    const idx=INDICES.find(x=>x.id===r.idx.id);
+    return `<div class="scan-item" onclick="switchIndex('${r.idx.id}')">
+      <div class="scan-top-row">
+        <span class="scan-rank ${i===0?'r1':i===1?'r2':i===2?'r3':''}">${i+1}</span>
+        <span class="scan-idx" style="color:${idx?.color||'#fff'}">${r.idx.name}</span>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--text);flex:1;margin-left:8px">${(r.state?.current||0).toFixed(2)}</span>
+        <span style="font-size:10px;font-family:var(--mono);${up?'color:var(--green)':'color:var(--red)'}">${up?'+':''}${r.pct.toFixed(2)}%</span>
+        <span class="scan-sig ${r.signal==='BUY'?'bull':'bear'}" style="margin-left:8px">${r.signal==='BUY'?'▲ BUY CALL':r.signal==='SELL'?'▼ BUY PUT':'◆ HOLD'}</span>
+        <span class="scan-score" style="margin-left:8px">${r.strength}/10 | ${r.confidence}%</span>
+      </div>
+      <div class="scan-detail">${r.reason}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── PAPER TRADE RENDERS ────────────────────────────── */
+function renderPaperMini(){
+  const el=document.getElementById('pt-portfolio'); if(!el) return;
+  const positions=PaperTradeEngine.positions;
+  if(!positions.length){el.innerHTML='<div class="pt-empty">No open positions</div>';}
+  else{
+    el.innerHTML=positions.slice(0,4).map(p=>{
+      const pnl=PaperTradeEngine.getPnL(p);
+      return `<div class="pt-position">
+        <span class="pt-pos-name">${p.idxId.replace('nifty','N').toUpperCase()} ${p.strike}${p.type}</span>
+        <span class="pt-pos-qty">×${p.qty}</span>
+        <span class="pt-pos-pnl ${pnl>=0?'profit':'loss'}">${pnl>=0?'+':''}₹${Math.abs(pnl).toFixed(0)}</span>
+        <button class="pt-close-btn" onclick="closePaperTrade(${p.id})">×</button>
+      </div>`;
+    }).join('');
+  }
+  const tot=PaperTradeEngine.totalPnL();
+  const totEl=document.getElementById('pt-total');
+  if(totEl){totEl.textContent=(tot>=0?'+':'')+'₹'+Math.abs(tot).toFixed(0);totEl.className=`pt-total-val ${tot>=0?'profit':'loss'}`;}
+}
+
+function renderPaperFull(){
+  const el=document.getElementById('pt-positions-full'); if(!el) return;
+  const positions=PaperTradeEngine.positions;
+  if(!positions.length){el.innerHTML='<div class="pt-empty">No open positions</div>';renderPaperPnL();return;}
+  el.innerHTML=positions.map(p=>{
+    const pnl=PaperTradeEngine.getPnL(p);
+    const markPx=PaperTradeEngine.getMarkPx(p);
+    const idx=INDICES.find(i=>i.id===p.idxId);
+    return `<div class="pt-position">
+      <span class="pt-pos-name" style="color:${idx?.color||'#fff'}">${idx?.name||p.idxId} ${p.strike}${p.type}</span>
+      <span class="pt-pos-qty" style="font-size:10px;">Qty:${p.qty} | Entry:₹${p.entryPx} | LTP:₹${markPx.toFixed(2)}</span>
+      <span class="pt-pos-pnl ${pnl>=0?'profit':'loss'}">${pnl>=0?'+':''}₹${Math.abs(pnl).toFixed(0)}</span>
+      <button class="pt-close-btn" onclick="closePaperTrade(${p.id})" title="Close position">×</button>
+    </div>`;
+  }).join('');
+  renderPaperPnL();
+}
+
+function renderPaperPnL(){
+  const tot=PaperTradeEngine.totalPnL();
+  const totEl=document.getElementById('pt-full-pnl');
+  if(totEl){totEl.textContent=(tot>=0?'+':'')+'₹'+Math.abs(tot).toFixed(0);totEl.style.color=tot>=0?'var(--green)':'var(--red)';}
+  const totMini=document.getElementById('pt-total');
+  if(totMini){totMini.textContent=(tot>=0?'+':'')+'₹'+Math.abs(tot).toFixed(0);totMini.className=`pt-total-val ${tot>=0?'profit':'loss'}`;}
+}
+
+function closePaperTrade(id){
+  PaperTradeEngine.close(id);
+  renderPaperMini();
+  renderPaperFull();
+}
+
+function ptQuickBuy(){
+  const idxId=document.getElementById('pt-buy-idx')?.value;
+  const type=document.getElementById('pt-buy-type')?.value||'CE';
+  const strike=parseFloat(document.getElementById('pt-buy-strike')?.value);
+  const qty=parseInt(document.getElementById('pt-buy-qty')?.value)||1;
+  if(!idxId||!strike) return showProToast('⚠️ Error','Please fill all fields','info');
+  const pos=PaperTradeEngine.buy(idxId,type,strike,qty);
+  if(!pos) return showProToast('⚠️ Error','Could not price option','info');
+  showProToast('✅ Trade Added',`${pos.idxId} ${pos.strike}${pos.type} ×${pos.qty} @ ₹${pos.entryPx}`,'bull');
+  renderPaperMini(); renderPaperFull();
+}
+
+/* ── STRATEGY WIZARD ────────────────────────────────── */
+let wizState={dir:null,aggr:null,step:1};
+function openStrategyWizard(){
+  wizState={dir:null,aggr:null,step:1};
+  renderWizStep(1);
+  document.getElementById('modal-wizard')?.classList.add('open');
+}
+function closeModal(id){document.getElementById(id)?.classList.remove('open');}
+
+function renderWizStep(step){
+  wizState.step=step;
+  ['wiz-step-1','wiz-step-2','wiz-step-3'].forEach((id,i)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.className='wiz-step'+(i+1===step?' active':i+1<step?' done':'');
+  });
+  const el=document.getElementById('wiz-content'); if(!el) return;
+  if(step===1){
+    el.innerHTML=`<div class="direction-grid">
+      <div class="dir-card${wizState.dir==='bull'?' selected bull':''}" onclick="wizSelectDir('bull')">
+        <div class="dir-icon">🟢</div><div class="dir-label">BULLISH</div>
+        <div class="dir-desc">Market going up · Buy CALL options</div>
+      </div>
+      <div class="dir-card${wizState.dir==='bear'?' selected bear':''}" onclick="wizSelectDir('bear')">
+        <div class="dir-icon">🔴</div><div class="dir-label">BEARISH</div>
+        <div class="dir-desc">Market going down · Buy PUT options</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;text-align:center">
+      <button class="btn-primary" onclick="renderWizStep(2)" ${!wizState.dir?'disabled':''}>Next: Choose Aggression →</button>
+    </div>`;
+  } else if(step===2){
+    el.innerHTML=`<div class="aggr-grid">
+      <div class="aggr-card${wizState.aggr==='conservative'?' selected':''}" onclick="wizSelectAggr('conservative')">
+        <div class="aggr-icon">🛡️</div><div class="aggr-label">Conservative</div>
+        <div class="aggr-desc">ATM options, lower risk</div>
+      </div>
+      <div class="aggr-card${wizState.aggr==='moderate'?' selected':''}" onclick="wizSelectAggr('moderate')">
+        <div class="aggr-icon">⚖️</div><div class="aggr-label">Moderate</div>
+        <div class="aggr-desc">Slightly OTM, balanced R:R</div>
+      </div>
+      <div class="aggr-card${wizState.aggr==='aggressive'?' selected':''}" onclick="wizSelectAggr('aggressive')">
+        <div class="aggr-icon">⚡</div><div class="aggr-label">Aggressive</div>
+        <div class="aggr-desc">Deep OTM, high risk/reward</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+      <button class="hdr-btn" onclick="renderWizStep(1)">← Back</button>
+      <button class="btn-primary" onclick="renderWizStep(3)" ${!wizState.aggr?'disabled':''}>See Strategy & P&L →</button>
+    </div>`;
+  } else {
+    const st=IndexState.getCurrent();
+    const atm=OptionsEngine.getATM(st.current);
+    const offset=wizState.aggr==='conservative'?0:wizState.aggr==='moderate'?1:2;
+    const step_s=INDICES.find(i=>i.id===IndexState.current)?.step||50;
+    const strike=wizState.dir==='bull'?atm+offset*step_s:atm-offset*step_s;
+    const type=wizState.dir==='bull'?'call':'put';
+    const T=6/365, iv=OptionsEngine.getIV(st.current,strike,T);
+    const premium=OptionsEngine.getPrice(st.current,strike,type,iv,T);
+    const lot=INDICES.find(i=>i.id===IndexState.current)?.lot||50;
+    const maxLoss=(premium*lot).toFixed(0);
+    const target1=(premium*2*lot).toFixed(0), target2=(premium*3*lot).toFixed(0);
+    const be=wizState.dir==='bull'?strike+premium:strike-premium;
+    const stratName=wizState.dir==='bull'?'Long Call':'Long Put';
+    el.innerHTML=`<div class="strategy-result">
+      <div class="strat-name">📊 ${stratName} — ${strike} ${type.toUpperCase()}</div>
+      <div class="strat-metrics">
+        <div class="strat-metric"><div class="strat-metric-label">Premium</div><div class="strat-metric-val">₹${premium.toFixed(1)}</div></div>
+        <div class="strat-metric"><div class="strat-metric-label">Max Loss</div><div class="strat-metric-val" style="color:var(--red)">₹${maxLoss}</div></div>
+        <div class="strat-metric"><div class="strat-metric-label">Breakeven</div><div class="strat-metric-val" style="color:var(--yellow)">${be.toFixed(0)}</div></div>
+        <div class="strat-metric"><div class="strat-metric-label">Lot Size</div><div class="strat-metric-val">${lot}</div></div>
+      </div>
+      <div class="pnl-chart-wrap" style="margin-top:12px">
+        <div class="section-label">P&L at Expiry</div>
+        <div class="pnl-bar-row"><span class="pnl-label">−10% move</span><div class="pnl-bar loss" style="width:${wizState.dir==='bull'?'60%':'5%'}"><span>−₹${maxLoss}</span></div></div>
+        <div class="pnl-bar-row"><span class="pnl-label">−5% move</span><div class="pnl-bar loss" style="width:${wizState.dir==='bull'?'40%':'5%'}"><span>−₹${(premium*lot*0.6).toFixed(0)}</span></div></div>
+        <div class="pnl-bar-row"><span class="pnl-label">Flat</span><div class="pnl-bar loss" style="width:25%"><span>−₹${(premium*lot*0.3).toFixed(0)}</span></div></div>
+        <div class="pnl-bar-row"><span class="pnl-label">+5% move</span><div class="pnl-bar profit" style="width:${wizState.dir==='bull'?'50%':'20%'}"><span>+₹${target1}</span></div></div>
+        <div class="pnl-bar-row"><span class="pnl-label">+10% move</span><div class="pnl-bar profit" style="width:${wizState.dir==='bull'?'80%':'20%'}"><span>+₹${target2}</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:center">
+      <button class="hdr-btn" onclick="renderWizStep(2)">← Back</button>
+      <button class="btn-primary" onclick="wizExecute(${strike},'${type.toUpperCase().substring(0,2)}')"><i class="fa fa-bolt"></i> Add to Paper Trade</button>
+    </div>`;
+  }
+}
+
+function wizSelectDir(dir){wizState.dir=dir;renderWizStep(1);}
+function wizSelectAggr(aggr){wizState.aggr=aggr;renderWizStep(2);}
+function wizExecute(strike,type){
+  const pos=PaperTradeEngine.buy(IndexState.current,type,strike,1);
+  if(pos){showProToast('✅ Paper Trade','Added '+IndexState.current+' '+strike+type,'bull');renderPaperMini();}
+  closeModal('modal-wizard');
+}
+
+/* ── ALERT BUILDER ──────────────────────────────────── */
+function openAlertModal(){
+  const sel=document.getElementById('alert-idx');
+  if(sel&&!sel.options.length) INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;sel.appendChild(o);});
+  renderAlertsList();
+  document.getElementById('modal-alerts')?.classList.add('open');
+}
+
+function addAlert(){
+  const idxId=document.getElementById('alert-idx')?.value;
+  const cond=document.getElementById('alert-cond')?.value;
+  const price=document.getElementById('alert-price')?.value;
+  if(!idxId||!price) return;
+  AlertEngine.add(idxId,cond,+price);
+  document.getElementById('alert-price').value='';
+  renderAlertsList();
+  const idx=INDICES.find(i=>i.id===idxId);
+  showProToast('🔔 Alert Set',`${idx?.name}: ${cond} ₹${parseFloat(price).toLocaleString('en-IN')}`,'info');
+}
+
+function removeAlert(id){AlertEngine.remove(id);renderAlertsList();}
+
+function renderAlertsList(){
+  const el=document.getElementById('alerts-list'); if(!el) return;
+  if(!AlertEngine.alerts.length){el.innerHTML='<div style="color:var(--text3);font-size:10.5px;text-align:center;padding:10px">No alerts set</div>';return;}
+  el.innerHTML=AlertEngine.alerts.map(a=>{
+    const idx=INDICES.find(i=>i.id===a.idxId);
+    return `<div class="alert-item">
+      <div class="alert-item-icon ${a.cond}">${a.cond==='above'?'↑':'↓'}</div>
+      <span class="alert-item-text">${idx?.name||a.idxId} ${a.cond} ₹${a.price.toLocaleString('en-IN')}${a.fired?' ✓ (fired)':''}</span>
+      <button class="alert-item-del" onclick="removeAlert(${a.id})">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── COMPARE TOOL ───────────────────────────────────── */
+function openCompare(){showView('compare');}
+
+function updateCompare(){
+  // Populate selects first time
+  ['cmp-a','cmp-b'].forEach((id,i)=>{
+    const sel=document.getElementById(id); if(!sel||sel.options.length) return;
+    INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;sel.appendChild(o);});
+    sel.value=i===0?'nifty50':'banknifty';
+  });
+  const idA=document.getElementById('cmp-a')?.value||'nifty50';
+  const idB=document.getElementById('cmp-b')?.value||'banknifty';
+  const stA=IndexState.getState(idA), stB=IndexState.getState(idB);
+  const pA=IndexState.pct(idA), pB=IndexState.pct(idB);
+  const idxA=INDICES.find(i=>i.id===idA), idxB=INDICES.find(i=>i.id===idB);
+  const el=document.getElementById('cmp-result-full'); if(!el) return;
+  const maxPct=Math.max(Math.abs(pA),Math.abs(pB),1);
+  const mkBar=(pct,color)=>{
+    const w=Math.abs(pct)/maxPct*100;
+    return `<div class="cmp-bar-wrap"><div class="cmp-bar-fill ${pct>=0?'up':'dn'}" style="width:${w}%;background:${color}44;border:1px solid ${color}66"></div></div>`;
+  };
+  const mkCard=(idx,st,pct)=>{
+    const up=pct>=0;
+    const chain=OptionsEngine.buildChain(st.current,10);
+    const pcr=OptionsEngine.getPCR(chain), mp=OptionsEngine.getMaxPain(chain);
+    const tech=TechEngine.compute(st.history.slice(-60));
+    const sig=SignalEngine.eval(st.current,tech,pcr,mp,AIEngine.score);
+    return `<div style="flex:1;padding:16px;background:var(--bg-glass);border:1px solid ${idx.color}33;border-radius:10px">
+      <div style="font-size:12px;font-weight:700;color:${idx.color};margin-bottom:6px">${idx.name}</div>
+      <div style="font-size:22px;font-weight:800;font-family:var(--mono);color:#fff">${st.current.toFixed(2)}</div>
+      <div style="font-size:13px;font-weight:700;font-family:var(--mono);${up?'color:var(--green)':'color:var(--red)'};margin-bottom:10px">${up?'+':''}${pct.toFixed(2)}%</div>
+      ${mkBar(pct,idx.color)}
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="font-size:10px"><span style="color:var(--text3)">High: </span>${st.high.toFixed(2)}</div>
+        <div style="font-size:10px"><span style="color:var(--text3)">Low: </span>${st.low.toFixed(2)}</div>
+        <div style="font-size:10px"><span style="color:var(--text3)">PCR: </span>${pcr.toFixed(2)}</div>
+        <div style="font-size:10px"><span style="color:var(--text3)">MaxPain: </span>${mp}</div>
+        <div style="font-size:10px"><span style="color:var(--text3)">Signal: </span><span style="color:${sig.signal==='BUY'?'var(--green)':'var(--red)'}">${sig.signal} ${sig.strength}/10</span></div>
+        <div style="font-size:10px"><span style="color:var(--text3)">RSI: </span>${tech.rsi}</div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:12px;font-size:11px" onclick="switchIndex('${idx.id}')">Analyse ${idx.name}</button>
+    </div>`;
+  };
+  el.innerHTML=`<div style="display:flex;gap:14px">${mkCard(idxA,stA,pA)}${mkCard(idxB,stB,pB)}</div>`;
+}
+
+/* ── GREEKS TOOLTIP ─────────────────────────────────── */
+function showGreeks(e,spot,strike,type,iv){
+  const T=6/365;
+  const d1=(Math.log(spot/strike)+(0.065+0.5*iv*iv)*T)/(iv*Math.sqrt(T));
+  const d2=d1-iv*Math.sqrt(T);
+  const erf=x=>{const t=1/(1+0.3275911*Math.abs(x));const y=1-((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t*0.254829592*Math.exp(-x*x);return x<0?-y:y;};
+  const N=x=>0.5*(1+erf(x/Math.sqrt(2)));
+  const phi=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+  const delta=type==='CE'?N(d1):N(d1)-1;
+  const gamma=phi(d1)/(spot*iv*Math.sqrt(T));
+  const theta=type==='CE'?-(spot*phi(d1)*iv/(2*Math.sqrt(T))-0.065*strike*Math.exp(-0.065*T)*N(d2))/(365):-(spot*phi(d1)*iv/(2*Math.sqrt(T))+0.065*strike*Math.exp(-0.065*T)*N(-d2))/(365);
+  const vega=spot*phi(d1)*Math.sqrt(T)/100;
+  const prem=OptionsEngine.getPrice(spot,strike,type==='CE'?'call':'put',iv,T);
+  const $=id=>document.getElementById(id);
+  $('gt-delta').textContent=delta.toFixed(3); $('gt-gamma').textContent=gamma.toFixed(5);
+  $('gt-theta').textContent=theta.toFixed(2); $('gt-vega').textContent=vega.toFixed(3);
+  $('gt-prem').textContent='₹'+prem.toFixed(2);
+  // Breakeven
+  const be=type==='CE'?strike+prem:strike-prem;
+  const low=type==='CE'?strike:strike-prem*3, high=type==='CE'?strike+prem*3:strike;
+  const range=high-low;
+  const bePos=((be-low)/range*100).toFixed(1);
+  const spotPos=((spot-low)/range*100).toFixed(1);
+  const beTrack=$('gt-be-track');
+  if(beTrack) beTrack.innerHTML=`
+    <div class="be-zone profit" style="left:${bePos}%;right:0;bottom:0"></div>
+    <div class="be-zone loss" style="left:0;width:${bePos}%;bottom:0"></div>
+    <div class="be-marker" style="left:${Math.min(95,Math.max(5,spotPos))}%"></div>`;
+  $('gt-be-low').textContent=low.toFixed(0); $('gt-be-high').textContent=high.toFixed(0);
+  $('gt-be-spot').textContent='BE:'+be.toFixed(0);
+  const tt=document.getElementById('greeks-tooltip');
+  if(tt){tt.style.display='block';tt.style.left=(e.pageX+12)+'px';tt.style.top=(e.pageY-20)+'px';}
+}
+function hideGreeks(){const tt=document.getElementById('greeks-tooltip');if(tt)tt.style.display='none';}
+
+/* ── INFLUENCER MODAL ───────────────────────────────── */
+function openInfluencerModal(id){
+  const inf=INFLUENCERS.find(i=>i.id===id); if(!inf) return;
+  document.getElementById('inf-modal-name').textContent=`${inf.flag} ${inf.name}`;
+  const posts=FeedEngine.posts.filter(p=>p.influencer.id===id).slice(0,4);
+  document.getElementById('inf-modal-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px;background:var(--bg-glass);border-radius:8px">
+      <div class="post-avatar" style="width:44px;height:44px;font-size:14px;background:${inf.avatar}">${inf.init}</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fff">${inf.name}</div>
+        <div style="font-size:11px;color:var(--text2)">${inf.role}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${inf.handle} · Impact: ${inf.impact}/100 · ${inf.followers} followers</div>
+      </div>
+      <span class="badge badge-${inf.impact>=85?'red':inf.impact>=70?'cyan':'green'}" style="margin-left:auto">${inf.cat}</span>
+    </div>
+    <div class="section-label">Recent Posts</div>
+    ${posts.length?posts.map(p=>`<div class="inf-modal-post">
+      <div class="imp-post-text">${p.txt}</div>
+      <div class="imp-meta"><span>${timeAgo(p.ts)}</span><span>Impact: ${p.impact}</span><span style="color:${p.sent==='bullish'?'var(--green)':p.sent==='bearish'?'var(--red)':'var(--text2)'}">${p.sent}</span></div>
+    </div>`).join(''):'<div style="color:var(--text3);font-size:11px">No posts yet in feed</div>'}`;
+  document.getElementById('modal-influencer')?.classList.add('open');
+}
+
+/* ── PAPER TRADE BUY FORM SETUP ─────────────────────── */
+function setupPaperBuySelects(){
+  const sel=document.getElementById('pt-buy-idx'); if(!sel||sel.options.length>1) return;
+  INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;sel.appendChild(o);});
+}
+
+/* ── MAIN TICK (NEW) ────────────────────────────────── */
+let proTickCount=0;
+function proTick(){
+  proTickCount++;
+  IndexState.tick();
+  if(proTickCount%2===0) renderIndexTabs();
+  if(proTickCount%2===0) renderTicker();
+  if(proTickCount%3===0) updateHero();
+  if(proTickCount%3===0) updateSignalsNew();
+  if(proTickCount%5===0) updateMoodMeter();
+  if(proTickCount%6===0) renderScannerMini();
+  if(proTickCount%4===0) renderPaperMini();
+  if(proTickCount%8===0) AlertEngine.check();
+  updateExpiryCountdown();
+}
+
+function addNewPostPro(){
+  const post=FeedEngine.addRandomPost();
+  prependNewPost(post);
+  updateMoodMeter();
+}
+
+/* ── BOOTSTRAP ──────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{
+  // Check if we're on index.html (has chart div)
+  if(!document.getElementById('chart')) return;
+
+  // Init engines
+  NiftyEngine.init();
+  FeedEngine.init();
+  AIEngine.updateSentiment(FeedEngine.posts);
+  IndexState.init();
+
+  // Chart
+  initChart('chart');
+
+  // Initial renders
+  renderNewFeed();
+  renderIndexTabs();
+  renderTicker();
+  updateHero();
+  updateSignalsNew();
+  updateMoodMeter();
+  renderScannerMini();
+  renderPaperMini();
+  setupPaperBuySelects();
+  updateExpiryCountdown();
+
+  // Populate compare & alert selects
+  ['cmp-a','cmp-b'].forEach((id,i)=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;sel.appendChild(o);});
+    sel.value=i===0?'nifty50':'banknifty';
+  });
+  const alertSel=document.getElementById('alert-idx');
+  if(alertSel) INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;alertSel.appendChild(o);});
+
+  // Start tickers
+  setInterval(proTick, 1500);
+  setInterval(addNewPostPro, 6000+Math.random()*4000);
+  setInterval(updateExpiryCountdown, 1000);
+  setInterval(()=>{GeoEngine.tick();AIEngine.updateSentiment(FeedEngine.posts);},5000);
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(el=>{
+    el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
+  });
+
+  // Wizard: re-render when step clicked
+  document.getElementById('wiz-step-1')?.addEventListener('click',()=>renderWizStep(1));
+  document.getElementById('wiz-step-2')?.addEventListener('click',()=>wizState.dir&&renderWizStep(2));
+});

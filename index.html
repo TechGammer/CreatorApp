@@ -1,399 +1,315 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GeoPulse India | Geopolitical Market Intelligence</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IndiaTrader Pro — Live Options Intelligence</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
 <div id="app">
 
-  <!-- ═══ HEADER ═══════════════════════════════════════ -->
-  <div id="header">
-    <a class="logo" href="index.html">
-      <div class="logo-icon">📡</div>
-      <span class="logo-name">Geo<span>Pulse</span> India</span>
+  <!-- ── HEADER ─────────────────────────────────── -->
+  <header id="header">
+    <a class="logo" href="#">
+      <div class="logo-icon"><i class="fa fa-bolt"></i></div>
+      <div>
+        <div class="logo-text">IndiaTrader Pro</div>
+        <div class="logo-sub">Live Options Intelligence</div>
+      </div>
     </a>
 
-    <div class="header-tickers">
-      <div class="hticker">
-        <span class="hticker-lbl">NIFTY 50</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="hticker-val" id="nifty-val">22,478.50</span>
-        </div>
-        <div id="nifty-chg" class="hticker-chg"></div>
-      </div>
-      <div class="hticker">
-        <span class="hticker-lbl">BANKNIFTY</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="hticker-val" id="bn-val">48,234.70</span>
-        </div>
-        <div id="bn-chg" class="hticker-chg"></div>
-      </div>
-      <div class="hticker" style="min-width:70px">
-        <span class="hticker-lbl">INDIA VIX</span>
-        <span class="hticker-val mono" id="vix-val" style="color:var(--orange)">13.82</span>
-        <span class="hticker-chg down">▼ -0.45</span>
-      </div>
-      <div class="hticker" style="min-width:70px">
-        <span class="hticker-lbl">USD/INR</span>
-        <span class="hticker-val mono" id="usdinr-val">84.92</span>
-        <span class="hticker-chg down">▼ -0.12</span>
-      </div>
-    </div>
+    <!-- Feature 1: Index Tab Switcher -->
+    <div id="index-tabs"></div>
 
-    <div id="mkt-badge" class="mkt-badge mkt-open">
-      <span class="pulse-dot"></span>NSE LIVE
+    <div class="hdr-actions">
+      <div class="live-dot" title="Live Data"></div>
+      <button class="hdr-btn" onclick="openAlertModal()"><i class="fa fa-bell"></i> Alerts</button>
+      <button class="hdr-btn success" onclick="openStrategyWizard()"><i class="fa fa-wand-magic-sparkles"></i> Strategy</button>
+      <button class="hdr-btn" onclick="openCompare()"><i class="fa fa-code-compare"></i> Compare</button>
+      <a href="options.html" class="hdr-btn"><i class="fa fa-table"></i> Chain</a>
+      <a href="geopolitics.html" class="hdr-btn"><i class="fa fa-globe"></i> Geo</a>
+      <a href="influencers.html" class="hdr-btn"><i class="fa fa-users"></i> Influencers</a>
     </div>
+  </header>
 
-    <div style="margin-left:12px">
-      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">GIFT NIFTY</div>
-      <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green)">22,541 <span style="font-size:10px">▲ +87</span></div>
-    </div>
+  <!-- ── TICKER TAPE ─────────────────────────────── -->
+  <div id="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
 
-    <div class="hdr-alert-btn" onclick="document.getElementById('feed-posts').scrollTo({top:0,behavior:'smooth'})">
-      <i class="fa fa-bell"></i> ALERTS <span class="badge-num" id="alert-cnt">3</span>
-    </div>
-
-    <span class="clock" id="clock">🕐 --:--:-- IST</span>
+  <!-- ── NAV TABS ───────────────────────────────── -->
+  <div id="nav-tabs">
+    <div class="nav-tab active" onclick="showView('dashboard')"><i class="fa fa-chart-line"></i> Dashboard</div>
+    <div class="nav-tab" onclick="showView('scanner')"><i class="fa fa-magnifying-glass-chart"></i> Opportunity Scanner</div>
+    <div class="nav-tab" onclick="showView('paper')"><i class="fa fa-briefcase"></i> Paper Trades</div>
+    <div class="nav-tab" onclick="showView('compare')"><i class="fa fa-code-compare"></i> Index Compare</div>
   </div>
 
-  <!-- ═══ NAVBAR ══════════════════════════════════════ -->
-  <div id="navbar">
-    <a class="nav-btn active" href="index.html"><i class="fa fa-chart-line"></i> Dashboard</a>
-    <a class="nav-btn" href="influencers.html"><i class="fa fa-users"></i> Influencers <span class="nav-cnt">50</span></a>
-    <a class="nav-btn" href="options.html"><i class="fa fa-layer-group"></i> Options Chain</a>
-    <a class="nav-btn" href="geopolitics.html"><i class="fa fa-globe"></i> Geopolitics</a>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">DATA SOURCES</span>
-      <span style="font-size:10px;color:var(--cyan);font-weight:600;background:var(--cyan2);padding:2px 7px;border-radius:3px;border:1px solid var(--border-glow)">𝕏 Twitter/X</span>
-      <span style="font-size:10px;color:#e2772e;font-weight:600;background:rgba(226,119,46,.1);padding:2px 7px;border-radius:3px;border:1px solid rgba(226,119,46,.25)">Truth Social</span>
-      <span style="font-size:10px;color:#0a66c2;font-weight:600;background:rgba(10,102,194,.1);padding:2px 7px;border-radius:3px;border:1px solid rgba(10,102,194,.25)">LinkedIn</span>
-      <span style="font-size:10px;color:var(--green);font-weight:600;background:var(--green2);padding:2px 7px;border-radius:3px;border:1px solid rgba(0,230,118,.3)">NSE Live</span>
-    </div>
-  </div>
-
-  <!-- ═══ MAIN 3-COLUMN ════════════════════════════════ -->
+  <!-- ── MAIN BODY ──────────────────────────────── -->
   <div id="main">
 
-    <!-- ── LEFT: SOCIAL FEED ──────────────────────── -->
-    <div class="panel">
-      <div class="ph">
-        <span class="ph-title c">Live Feed</span>
-        <div class="live-tag">LIVE</div>
-        <span style="font-size:9px;color:var(--text3);margin-left:4px" id="post-count">0 posts</span>
-        <div style="margin-left:auto;font-size:9px;color:var(--text2);font-weight:600">TOP 50 INFLUENCERS</div>
+    <!-- ── LEFT: Social Feed ─────────────────────── -->
+    <div id="left-panel">
+      <div class="panel-header">
+        <i class="fa fa-rss" style="color:var(--cyan);font-size:11px"></i>
+        <span class="panel-title">Live Feed</span>
+        <span class="panel-badge" id="feed-count">0 posts</span>
       </div>
-      <div class="feed-filters">
-        <button class="fc active" onclick="setFilter('all',this)">All</button>
-        <button class="fc" onclick="setFilter('political',this)">Political</button>
-        <button class="fc" onclick="setFilter('financial',this)">Finance</button>
-        <button class="fc" onclick="setFilter('central_bank',this)">Central Banks</button>
-        <button class="fc" onclick="setFilter('corporate',this)">Corporate</button>
-        <button class="fc" onclick="setFilter('investor',this)">Investors</button>
-        <button class="fc" onclick="setFilter('tech',this)">Tech</button>
-      </div>
-      <div class="pb" id="feed-posts"></div>
+      <div id="feed-list"></div>
     </div>
 
-    <!-- ── CENTER ─────────────────────────────────── -->
-    <div id="center">
-      <!-- Chart Panel -->
-      <div id="chart-panel">
-        <div class="chart-hdr">
-          <span class="c-symbol">NIFTY50</span>
-          <div>
-            <div class="c-price up" id="chart-price">22,478.50</div>
-            <div class="c-chg" id="chart-chg"></div>
-          </div>
-          <div class="tf-bar">
-            <button class="tf" onclick="setTF(this,'1m')">1m</button>
-            <button class="tf active" onclick="setTF(this,'5m')">5m</button>
-            <button class="tf" onclick="setTF(this,'15m')">15m</button>
-            <button class="tf" onclick="setTF(this,'1h')">1H</button>
-            <button class="tf" onclick="setTF(this,'1d')">1D</button>
-          </div>
-          <div class="c-stats">
-            <div class="c-stat">
-              <span class="cs-lbl">Open</span>
-              <span class="cs-val" id="stat-open">22,401.20</span>
-            </div>
-            <div class="c-stat">
-              <span class="cs-lbl">High</span>
-              <span class="cs-val text-green" id="stat-high">22,541.80</span>
-            </div>
-            <div class="c-stat">
-              <span class="cs-lbl">Low</span>
-              <span class="cs-val text-red" id="stat-low">22,298.45</span>
-            </div>
-            <div class="c-stat">
-              <span class="cs-lbl">Prev Close</span>
-              <span class="cs-val">22,312.30</span>
-            </div>
+    <!-- ── CENTER PANEL ──────────────────────────── -->
+    <div id="center-panel">
+
+      <!-- Index Hero -->
+      <div id="index-hero">
+        <div>
+          <div class="hero-index-name" id="hero-idx-name">NIFTY 50</div>
+          <div class="hero-price-wrap">
+            <div class="hero-price" id="hero-price">—</div>
+            <div class="hero-chg" id="hero-chg">—</div>
           </div>
         </div>
-        <div id="chart-container"></div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-label">High</span><span class="hero-stat-val" id="hero-high">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">Low</span><span class="hero-stat-val" id="hero-low">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">Vol</span><span class="hero-stat-val" id="hero-vol">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">PCR</span><span class="hero-stat-val" id="hero-pcr">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">IV</span><span class="hero-stat-val" id="hero-iv">—</span></div>
+        </div>
+        <!-- Feature 5: Expiry Countdown -->
+        <div id="expiry-countdown">
+          <span class="exp-label"><i class="fa fa-clock"></i> Expiry</span>
+          <div class="exp-timer">
+            <div class="exp-unit"><span class="exp-num" id="exp-d">00</span><span class="exp-lbl">D</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-h">00</span><span class="exp-lbl">H</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-m">00</span><span class="exp-lbl">M</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-s">00</span><span class="exp-lbl">S</span></div>
+          </div>
+        </div>
       </div>
 
-      <!-- ═══ ENHANCED SIGNAL ENGINE PANEL ═══════════════ -->
-      <div id="signals">
-
-        <!-- Header row -->
-        <div class="ph" style="padding:5px 11px;gap:8px">
-          <i class="fa fa-robot" style="color:var(--purple)"></i>
-          <span class="ph-title" style="color:var(--purple)">AI Signal Engine — 10 Indicators</span>
-          <div class="live-tag">COMPUTING</div>
-          <span id="sig-conf-header" style="margin-left:auto;font-size:10px;font-family:var(--mono);font-weight:700;color:var(--cyan)">
-            CONF: --% | STR: --/10
-          </span>
+      <!-- VIEWS -->
+      <div id="view-dashboard" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+        <!-- Chart -->
+        <div id="chart-wrap">
+          <div class="chart-overlay-label" id="chart-label">1MIN · OHLCV</div>
+          <div id="chart"></div>
         </div>
 
-        <!-- Indicator Cards Strip (10 indicators) -->
-        <div id="indicator-cards" class="indicator-cards-strip"></div>
-
-        <!-- Main signal row -->
-        <div class="sig-main-row">
-
-          <!-- LEFT: signal badge + strength -->
-          <div class="sig-main-left">
-            <div id="sig-signal">
-              <span class="sig-badge hold">◆ HOLD</span>
-            </div>
-            <div id="sig-strength" class="sig-strength-wrap">
-              <div class="str-bars">
-                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
-                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
-                <div class="str-bar"></div><div class="str-bar"></div><div class="str-bar"></div>
-                <div class="str-bar"></div>
-              </div>
-              <span class="str-num">--/10</span>
-            </div>
-            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Signal Strength</div>
+        <!-- Signals Panel -->
+        <div id="signals">
+          <div class="signals-top-row">
+            <span class="sig-title"><i class="fa fa-signal"></i> Signal Engine</span>
+            <div id="sig-signal" class="sig-badge HOLD">HOLD</div>
+            <div id="sig-strength" class="str-bar-wrap"></div>
+            <span id="sig-conf" class="conf-badge">—%</span>
+            <span style="flex:1"></span>
+            <span id="sig-vix" style="font-size:10px;color:var(--text2);font-family:var(--mono)">VIX: —</span>
           </div>
-
-          <!-- CENTER: OI-based key levels -->
-          <div class="sig-levels">
-            <div class="sig-level">
-              <span class="sl-lbl">S2 (Put Wall)</span>
-              <span class="sl-val" style="color:var(--green)" id="sig-support2">--</span>
-            </div>
-            <div class="sig-level">
-              <span class="sl-lbl">S1 (Put OI)</span>
-              <span class="sl-val" style="color:var(--green)" id="sig-support">--</span>
-            </div>
-            <div class="sig-level" style="border:1px solid rgba(0,212,255,.3);background:rgba(0,212,255,.06);border-radius:4px;padding:3px 6px">
-              <span class="sl-lbl" style="color:var(--cyan)">ATM</span>
-              <span class="sl-val" style="color:var(--cyan)" id="sig-atm">--</span>
-            </div>
-            <div class="sig-level">
-              <span class="sl-lbl">R1 (Call OI)</span>
-              <span class="sl-val" style="color:var(--red)" id="sig-resist">--</span>
-            </div>
-            <div class="sig-level">
-              <span class="sl-lbl">R2 (Call Wall)</span>
-              <span class="sl-val" style="color:var(--red)" id="sig-resist2">--</span>
-            </div>
+          <div id="indicator-cards" class="indicator-cards-strip"></div>
+          <div class="sig-levels-row" id="sig-levels-row">
+            <div class="sig-level-item"><div class="sl-label">S2</div><div class="sl-val sup" id="sl-s2">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">S1</div><div class="sl-val sup" id="sl-s1">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">ATM</div><div class="sl-val atm" id="sl-atm">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">R1</div><div class="sl-val res" id="sl-r1">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">R2</div><div class="sl-val res" id="sl-r2">—</div></div>
           </div>
-
-          <!-- RIGHT: VIX + signal history -->
-          <div class="sig-main-right">
-            <div style="text-align:center;padding:5px 10px;background:var(--bg-card);border-radius:4px;border:1px solid var(--border)">
-              <div style="font-size:8px;text-transform:uppercase;color:var(--text3);letter-spacing:.5px">India VIX</div>
-              <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:var(--orange)" id="sig-vix">--</div>
-              <div style="font-size:8px;color:var(--text3)">Fear Index</div>
-            </div>
+          <div id="ai-rec" style="margin-top:6px"><strong>AI:</strong> Analysing market conditions…</div>
+          <div id="sig-history-wrap">
+            <div class="section-label" style="margin-top:6px"><i class="fa fa-history"></i> Signal History</div>
+            <div class="sh-row" id="sh-row"></div>
           </div>
         </div>
+      </div>
 
-        <!-- AI Rec bar -->
-        <div id="ai-rec">
-          <span class="air-lbl"><i class="fa fa-brain"></i> AI REC</span>
-          <span class="air-badge air-call" id="air-badge">CALL</span>
-          <span class="air-txt" id="air-text">Computing multi-factor signal...</span>
-          <span class="air-conf" id="air-conf">AI Confidence: --%</span>
+      <!-- Scanner Full View -->
+      <div id="view-scanner" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div class="section-label"><i class="fa fa-magnifying-glass-chart"></i> Opportunity Scanner — All 12 Indices</div>
+        <div id="scanner-full-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+      </div>
+
+      <!-- Paper Trades Full View -->
+      <div id="view-paper" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span class="section-label" style="margin:0"><i class="fa fa-briefcase"></i> Paper Trade Simulator</span>
+          <span id="pt-balance-display" style="font-family:var(--mono);font-size:11.5px;color:var(--cyan)">Balance: ₹10,00,000</span>
         </div>
+        <div id="pt-positions-full" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="margin-top:14px;padding:12px;background:var(--bg-glass);border:1px solid var(--border);border-radius:8px">
+          <div class="section-label">Quick Buy</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <select id="pt-buy-idx" class="form-select" style="max-width:130px"><option value="">Select Index</option></select>
+            <select id="pt-buy-type" class="form-select" style="max-width:100px">
+              <option value="CE">CALL (CE)</option>
+              <option value="PE">PUT (PE)</option>
+            </select>
+            <input id="pt-buy-strike" class="form-input" style="max-width:100px" placeholder="Strike" type="number">
+            <input id="pt-buy-qty" class="form-input" style="max-width:80px" placeholder="Qty" type="number" value="1">
+            <button class="btn-primary" onclick="ptQuickBuy()"><i class="fa fa-plus"></i> Buy</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--bg-glass);border:1px solid var(--border);border-radius:8px">
+          <div class="section-label">Total P&amp;L</div>
+          <div id="pt-full-pnl" style="font-size:28px;font-weight:800;font-family:var(--mono);margin-top:4px">₹0</div>
+        </div>
+      </div>
 
-      </div><!-- end #signals -->
+      <!-- Compare Full View -->
+      <div id="view-compare" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div class="section-label" style="margin-bottom:10px"><i class="fa fa-code-compare"></i> Index Comparison Tool</div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end">
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Index A</div>
+            <select id="cmp-a" class="form-select" onchange="updateCompare()"></select>
+          </div>
+          <div style="font-size:22px;color:var(--text3);font-weight:700;padding-bottom:4px">VS</div>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Index B</div>
+            <select id="cmp-b" class="form-select" onchange="updateCompare()"></select>
+          </div>
+        </div>
+        <div id="cmp-result-full"></div>
+      </div>
+
     </div>
 
-    <!-- ── RIGHT: AI ANALYSIS ─────────────────────── -->
-    <div id="right">
+    <!-- ── RIGHT PANEL ────────────────────────────── -->
+    <div id="right-panel">
 
-      <!-- Sentiment Meter -->
-      <div class="rsec">
-        <div class="ph">
-          <i class="fa fa-brain" style="color:var(--purple)"></i>
-          <span class="ph-title" style="color:var(--purple)">AI Sentiment</span>
-          <div class="live-tag" style="margin-left:auto">AI LIVE</div>
+      <!-- Feature 8: Market Mood Meter -->
+      <div id="mood-section" class="right-section">
+        <div class="mood-title"><i class="fa fa-gauge-high"></i> Market Mood Meter</div>
+        <canvas id="mood-canvas" width="220" height="120"></canvas>
+        <div class="mood-label" id="mood-label">Neutral</div>
+        <div class="mood-value" id="mood-value">50 / 100</div>
+        <div class="mood-scale"><span style="color:var(--red)">Extreme Fear</span><span>Neutral</span><span style="color:var(--green)">Extreme Greed</span></div>
+      </div>
+
+      <!-- Feature 3: Paper Trade mini -->
+      <div id="paper-section" class="right-section">
+        <div class="panel-header" style="padding:0 0 8px">
+          <i class="fa fa-briefcase" style="color:var(--purple);font-size:10px"></i>
+          <span class="panel-title">Paper Trades</span>
+          <button class="hdr-btn" style="padding:3px 8px;font-size:10px" onclick="showView('paper')">All</button>
         </div>
-        <div class="sent-wrap">
-          <div class="sent-row">
-            <span class="sent-score text-green" id="sent-score">62</span>
-            <span class="sent-label text-green" id="sent-label" style="font-size:11px">BULLISH</span>
-          </div>
-          <div style="font-size:10px;color:var(--text2);margin-bottom:6px">Geo-social sentiment from 50 influencers</div>
-          <div class="sent-bar-bg">
-            <div class="sent-bar" id="sent-bar" style="width:62%;background:linear-gradient(90deg,var(--red),var(--orange) 40%,var(--green))"></div>
-          </div>
-          <div class="sent-lbls"><span>Bearish</span><span>Neutral</span><span>Bullish</span></div>
-          <div class="sent-breakdown">
-            <div class="sb-cell"><div class="sb-val text-green" id="sb-bull">--</div><div class="sb-lbl">Bullish</div></div>
-            <div class="sb-cell"><div class="sb-val" style="color:var(--text2)" id="sb-neu">--</div><div class="sb-lbl">Neutral</div></div>
-            <div class="sb-cell"><div class="sb-val text-red" id="sb-bear">--</div><div class="sb-lbl">Bearish</div></div>
-          </div>
+        <div id="pt-portfolio" class="pt-portfolio"><div class="pt-empty">No open positions</div></div>
+        <div class="pt-summary">
+          <span class="pt-total-label">Total P&amp;L</span>
+          <span class="pt-total-val" id="pt-total">₹0</span>
         </div>
       </div>
 
-      <!-- Geo Risk Gauges -->
-      <div class="rsec">
-        <div class="ph">
-          <i class="fa fa-globe" style="color:var(--orange)"></i>
-          <span class="ph-title">Geo Risk Meter</span>
+      <!-- Feature 9: Opportunity Scanner mini -->
+      <div id="scanner-section" class="right-section" style="flex:1;overflow-y:auto">
+        <div class="panel-header" style="padding:0 0 8px">
+          <i class="fa fa-magnifying-glass-chart" style="color:var(--cyan);font-size:10px"></i>
+          <span class="panel-title">Top Opportunities</span>
+          <button class="hdr-btn" style="padding:3px 8px;font-size:10px" onclick="showView('scanner')">All</button>
         </div>
-        <div class="geo-risk-wrap">
-          <div class="geo-title">Global Risk Impact on India Markets</div>
-          <div id="geo-risk-bars"></div>
-        </div>
+        <div id="scanner-mini"></div>
       </div>
 
-      <!-- Live Events -->
-      <div class="rsec" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
-        <div class="ph">
-          <i class="fa fa-bolt" style="color:var(--yellow)"></i>
-          <span class="ph-title">Live Events</span>
-          <div class="live-tag" style="margin-left:auto">LIVE</div>
-        </div>
-        <div id="events-list" class="events-list pb" style="overflow-y:auto"></div>
-      </div>
-
-      <!-- Signal History -->
-      <div class="rsec" style="flex-shrink:0">
-        <div class="ph">
-          <i class="fa fa-history" style="color:var(--yellow)"></i>
-          <span class="ph-title" style="color:var(--yellow)">Signal History</span>
-          <span style="margin-left:auto;font-size:9px;color:var(--text3)">Last 5 signals</span>
-        </div>
-        <div style="padding:6px 12px">
-          <div style="display:grid;grid-template-columns:28px 1fr 32px 55px 28px;gap:3px;font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--border-dim)">
-            <span>Time</span><span>Signal</span><span>Conf</span><span>Spot</span><span>Str</span>
-          </div>
-          <div id="sig-history"></div>
-        </div>
-      </div>
-
-      <!-- Mini Options Chain -->
-      <div class="rsec" style="flex-shrink:0">
-        <div class="ph">
-          <i class="fa fa-layer-group" style="color:var(--cyan)"></i>
-          <span class="ph-title c">Options Snapshot</span>
-          <a href="options.html" style="margin-left:auto;font-size:9px;color:var(--cyan);text-decoration:none;font-weight:600">FULL CHAIN →</a>
-        </div>
-        <div class="opt-mini">
-          <div class="opt-title">
-            <span>NIFTY OPTIONS</span>
-            <span class="opt-atm" id="opt-atm-lbl">ATM: 22,500</span>
-          </div>
-          <table class="opt-tbl">
-            <tr><th>Strike</th><th>C.IV</th><th>C.OI</th><th>P.OI</th><th>P.IV</th></tr>
-            <tbody id="opt-mini-rows"></tbody>
-          </table>
-          <div class="opt-stats">
-            <div class="ost"><div class="ost-l">PCR</div><div class="ost-v" id="opt-pcr">--</div></div>
-            <div class="ost"><div class="ost-l">Max Pain</div><div class="ost-v" id="opt-mp">--</div></div>
-            <div class="ost"><div class="ost-l">ATM</div><div class="ost-v text-cyan" id="opt-atm">--</div></div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- end #right -->
-  </div><!-- end #main -->
-
-  <!-- ═══ NEWS TICKER ══════════════════════════════════ -->
-  <div id="ticker">
-    <div class="ticker-tag">📡 LIVE</div>
-    <div class="ticker-wrap">
-      <div class="ticker-inner" id="ticker-inner"></div>
     </div>
   </div>
+</div>
 
-</div><!-- end #app -->
+<!-- ── ALERT TOASTS ────────────────────────────────── -->
+<div id="alert-badge"></div>
+
+<!-- Feature 6: Greeks Tooltip -->
+<div id="greeks-tooltip" style="display:none">
+  <div class="greeks-title"><i class="fa fa-calculator"></i> Option Greeks</div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Δ</span> Delta</span><span class="greek-val" id="gt-delta">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Γ</span> Gamma</span><span class="greek-val" id="gt-gamma">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Θ</span> Theta</span><span class="greek-val" id="gt-theta">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">ν</span> Vega</span><span class="greek-val" id="gt-vega">—</span></div>
+  <div class="greek-row" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
+    <span class="greek-name">Premium</span><span class="greek-val" id="gt-prem">—</span>
+  </div>
+  <!-- Feature 7: Breakeven Visualizer -->
+  <div class="be-wrap" style="margin-top:8px">
+    <div class="section-label">Breakeven Zone</div>
+    <div class="be-track" id="gt-be-track"></div>
+    <div class="be-labels"><span id="gt-be-low">—</span><span id="gt-be-spot">Spot</span><span id="gt-be-high">—</span></div>
+  </div>
+</div>
+
+<!-- Feature 2: Strategy Wizard Modal -->
+<div class="modal-overlay" id="modal-wizard">
+  <div class="modal-box" style="width:560px">
+    <div class="modal-header">
+      <i class="fa fa-wand-magic-sparkles" style="color:var(--cyan)"></i>
+      <span class="modal-title">Strategy Wizard</span>
+      <button class="modal-close" onclick="closeModal('modal-wizard')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="wizard-steps">
+        <div class="wiz-step active" id="wiz-step-1">1. Direction</div>
+        <span class="wiz-arrow">›</span>
+        <div class="wiz-step" id="wiz-step-2">2. Aggression</div>
+        <span class="wiz-arrow">›</span>
+        <div class="wiz-step" id="wiz-step-3">3. Strategy &amp; P&amp;L</div>
+      </div>
+      <div class="wiz-content" id="wiz-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Feature 4: Alert Builder Modal -->
+<div class="modal-overlay" id="modal-alerts">
+  <div class="modal-box" style="width:440px">
+    <div class="modal-header">
+      <i class="fa fa-bell" style="color:var(--yellow)"></i>
+      <span class="modal-title">Price Alert Builder</span>
+      <button class="modal-close" onclick="closeModal('modal-alerts')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert-form">
+        <div class="form-row">
+          <span class="form-label">Index</span>
+          <select class="form-select" id="alert-idx"></select>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Condition</span>
+          <select class="form-select" id="alert-cond">
+            <option value="above">Price goes ABOVE</option>
+            <option value="below">Price goes BELOW</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Target Price</span>
+          <input class="form-input" id="alert-price" type="number" placeholder="Enter price level">
+        </div>
+        <div class="form-row" style="justify-content:flex-end">
+          <button class="btn-primary" onclick="addAlert()"><i class="fa fa-plus"></i> Add Alert</button>
+        </div>
+      </div>
+      <div class="alerts-list" id="alerts-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Influencer Modal -->
+<div class="modal-overlay" id="modal-influencer">
+  <div class="modal-box" style="width:500px">
+    <div class="modal-header">
+      <i class="fa fa-user-circle" style="color:var(--purple)"></i>
+      <span class="modal-title" id="inf-modal-name">Influencer</span>
+      <button class="modal-close" onclick="closeModal('modal-influencer')">&times;</button>
+    </div>
+    <div class="modal-body" id="inf-modal-content"></div>
+  </div>
+</div>
 
 <script src="app.js"></script>
-<script>
-/* ── FILTER ─────────────────────────────────────── */
-function setFilter(f, btn) {
-  document.querySelectorAll('.fc').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  window.GeoPulse.FeedEngine.filter = f;
-  renderFeed(document.getElementById('feed-posts'));
-}
-
-/* ── TIMEFRAME ───────────────────────────────────── */
-function setTF(btn, tf) {
-  document.querySelectorAll('.tf').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-/* ── NEWS TICKER INIT ────────────────────────────── */
-function initTicker() {
-  const inner = document.getElementById('ticker-inner');
-  const {TICKER_ITEMS} = window.GeoPulse || {};
-  if(!inner || !TICKER_ITEMS) return;
-  const colors = {bullish:'var(--green)',bearish:'var(--red)',neutral:'var(--text)'};
-  inner.innerHTML = [...TICKER_ITEMS,...TICKER_ITEMS].map(t=>
-    `<span class="tn" style="color:${colors[t.type]}">${t.txt}</span>`
-  ).join('');
-}
-
-/* ── BOOT ────────────────────────────────────────── */
-window.addEventListener('DOMContentLoaded', () => {
-  const GP = window.GeoPulse;
-  GP.init();
-
-  // Render initial feed
-  const feedEl = document.getElementById('feed-posts');
-  if(feedEl) {
-    renderFeed(feedEl);
-    document.getElementById('post-count').textContent = GP.FeedEngine.posts.length + ' posts';
-  }
-
-  // Init chart
-  GP.initChart('chart-container');
-
-  // Update all panels
-  GP.updateHeaderTickers();
-  GP.updateSignals();
-  GP.updateSentimentPanel();
-  GP.updateGeoRisk();
-  GP.updateEvents();
-  GP.updateOptMini();
-
-  // Ticker
-  initTicker();
-
-  // Post count updater
-  setInterval(()=>{
-    const el = document.getElementById('post-count');
-    if(el) el.textContent = GP.FeedEngine.posts.length + ' posts';
-  }, 8000);
-
-  // Random alert notification
-  setTimeout(()=>{
-    GP.showToast('🚨 High Impact Alert', 'Jerome Powell: Fed signals pause in rate cuts — Dollar strengthens. Watch Nifty support at 22,200');
-  }, 5000);
-  setTimeout(()=>{
-    GP.showToast('📊 SEBI Alert', 'New F&O margin rules effective next week — Option writers must review positions');
-  }, 12000);
-});
-
-function renderFeed(container) {
-  window.GeoPulse.renderFeed(container);
-}
-</script>
 </body>
 </html>
