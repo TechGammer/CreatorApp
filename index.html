@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IndiaTrader Pro — Live Options Intelligence</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── HEADER ─────────────────────────────────── -->
+  <header id="header">
+    <a class="logo" href="#">
+      <div class="logo-icon"><i class="fa fa-bolt"></i></div>
+      <div>
+        <div class="logo-text">IndiaTrader Pro</div>
+        <div class="logo-sub">Live Options Intelligence</div>
+      </div>
+    </a>
+
+    <!-- Feature 1: Index Tab Switcher -->
+    <div id="index-tabs"></div>
+
+    <div class="hdr-actions">
+      <div class="live-dot" title="Live Data"></div>
+      <button class="hdr-btn" onclick="openAlertModal()"><i class="fa fa-bell"></i> Alerts</button>
+      <button class="hdr-btn success" onclick="openStrategyWizard()"><i class="fa fa-wand-magic-sparkles"></i> Strategy</button>
+      <button class="hdr-btn" onclick="openCompare()"><i class="fa fa-code-compare"></i> Compare</button>
+      <a href="options.html" class="hdr-btn"><i class="fa fa-table"></i> Chain</a>
+      <a href="geopolitics.html" class="hdr-btn"><i class="fa fa-globe"></i> Geo</a>
+      <a href="influencers.html" class="hdr-btn"><i class="fa fa-users"></i> Influencers</a>
+    </div>
+  </header>
+
+  <!-- ── TICKER TAPE ─────────────────────────────── -->
+  <div id="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
+
+  <!-- ── NAV TABS ───────────────────────────────── -->
+  <div id="nav-tabs">
+    <div class="nav-tab active" onclick="showView('dashboard')"><i class="fa fa-chart-line"></i> Dashboard</div>
+    <div class="nav-tab" onclick="showView('scanner')"><i class="fa fa-magnifying-glass-chart"></i> Opportunity Scanner</div>
+    <div class="nav-tab" onclick="showView('paper')"><i class="fa fa-briefcase"></i> Paper Trades</div>
+    <div class="nav-tab" onclick="showView('compare')"><i class="fa fa-code-compare"></i> Index Compare</div>
+  </div>
+
+  <!-- ── MAIN BODY ──────────────────────────────── -->
+  <div id="main">
+
+    <!-- ── LEFT: Social Feed ─────────────────────── -->
+    <div id="left-panel">
+      <div class="panel-header">
+        <i class="fa fa-rss" style="color:var(--cyan);font-size:11px"></i>
+        <span class="panel-title">Live Feed</span>
+        <span class="panel-badge" id="feed-count">0 posts</span>
+      </div>
+      <div id="feed-list"></div>
+    </div>
+
+    <!-- ── CENTER PANEL ──────────────────────────── -->
+    <div id="center-panel">
+
+      <!-- Index Hero -->
+      <div id="index-hero">
+        <div>
+          <div class="hero-index-name" id="hero-idx-name">NIFTY 50</div>
+          <div class="hero-price-wrap">
+            <div class="hero-price" id="hero-price">—</div>
+            <div class="hero-chg" id="hero-chg">—</div>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-label">High</span><span class="hero-stat-val" id="hero-high">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">Low</span><span class="hero-stat-val" id="hero-low">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">Vol</span><span class="hero-stat-val" id="hero-vol">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">PCR</span><span class="hero-stat-val" id="hero-pcr">—</span></div>
+          <div class="hero-stat"><span class="hero-stat-label">IV</span><span class="hero-stat-val" id="hero-iv">—</span></div>
+        </div>
+        <!-- Feature 5: Expiry Countdown -->
+        <div id="expiry-countdown">
+          <span class="exp-label"><i class="fa fa-clock"></i> Expiry</span>
+          <div class="exp-timer">
+            <div class="exp-unit"><span class="exp-num" id="exp-d">00</span><span class="exp-lbl">D</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-h">00</span><span class="exp-lbl">H</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-m">00</span><span class="exp-lbl">M</span></div>
+            <span class="exp-sep">:</span>
+            <div class="exp-unit"><span class="exp-num" id="exp-s">00</span><span class="exp-lbl">S</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEWS -->
+      <div id="view-dashboard" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+        <!-- Chart -->
+        <div id="chart-wrap">
+          <div class="chart-overlay-label" id="chart-label">1MIN · OHLCV</div>
+          <div id="chart"></div>
+        </div>
+
+        <!-- Signals Panel -->
+        <div id="signals">
+          <div class="signals-top-row">
+            <span class="sig-title"><i class="fa fa-signal"></i> Signal Engine</span>
+            <div id="sig-signal" class="sig-badge HOLD">HOLD</div>
+            <div id="sig-strength" class="str-bar-wrap"></div>
+            <span id="sig-conf" class="conf-badge">—%</span>
+            <span style="flex:1"></span>
+            <span id="sig-vix" style="font-size:10px;color:var(--text2);font-family:var(--mono)">VIX: —</span>
+          </div>
+          <div id="indicator-cards" class="indicator-cards-strip"></div>
+          <div class="sig-levels-row" id="sig-levels-row">
+            <div class="sig-level-item"><div class="sl-label">S2</div><div class="sl-val sup" id="sl-s2">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">S1</div><div class="sl-val sup" id="sl-s1">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">ATM</div><div class="sl-val atm" id="sl-atm">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">R1</div><div class="sl-val res" id="sl-r1">—</div></div>
+            <div class="sl-divider"></div>
+            <div class="sig-level-item"><div class="sl-label">R2</div><div class="sl-val res" id="sl-r2">—</div></div>
+          </div>
+          <div id="ai-rec" style="margin-top:6px"><strong>AI:</strong> Analysing market conditions…</div>
+          <div id="sig-history-wrap">
+            <div class="section-label" style="margin-top:6px"><i class="fa fa-history"></i> Signal History</div>
+            <div class="sh-row" id="sh-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scanner Full View -->
+      <div id="view-scanner" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div class="section-label"><i class="fa fa-magnifying-glass-chart"></i> Opportunity Scanner — All 12 Indices</div>
+        <div id="scanner-full-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+      </div>
+
+      <!-- Paper Trades Full View -->
+      <div id="view-paper" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span class="section-label" style="margin:0"><i class="fa fa-briefcase"></i> Paper Trade Simulator</span>
+          <span id="pt-balance-display" style="font-family:var(--mono);font-size:11.5px;color:var(--cyan)">Balance: ₹10,00,000</span>
+        </div>
+        <div id="pt-positions-full" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="margin-top:14px;padding:12px;background:var(--bg-glass);border:1px solid var(--border);border-radius:8px">
+          <div class="section-label">Quick Buy</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <select id="pt-buy-idx" class="form-select" style="max-width:130px"><option value="">Select Index</option></select>
+            <select id="pt-buy-type" class="form-select" style="max-width:100px">
+              <option value="CE">CALL (CE)</option>
+              <option value="PE">PUT (PE)</option>
+            </select>
+            <input id="pt-buy-strike" class="form-input" style="max-width:100px" placeholder="Strike" type="number">
+            <input id="pt-buy-qty" class="form-input" style="max-width:80px" placeholder="Qty" type="number" value="1">
+            <button class="btn-primary" onclick="ptQuickBuy()"><i class="fa fa-plus"></i> Buy</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--bg-glass);border:1px solid var(--border);border-radius:8px">
+          <div class="section-label">Total P&amp;L</div>
+          <div id="pt-full-pnl" style="font-size:28px;font-weight:800;font-family:var(--mono);margin-top:4px">₹0</div>
+        </div>
+      </div>
+
+      <!-- Compare Full View -->
+      <div id="view-compare" style="flex:1;overflow-y:auto;padding:14px;display:none">
+        <div class="section-label" style="margin-bottom:10px"><i class="fa fa-code-compare"></i> Index Comparison Tool</div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end">
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Index A</div>
+            <select id="cmp-a" class="form-select" onchange="updateCompare()"></select>
+          </div>
+          <div style="font-size:22px;color:var(--text3);font-weight:700;padding-bottom:4px">VS</div>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Index B</div>
+            <select id="cmp-b" class="form-select" onchange="updateCompare()"></select>
+          </div>
+        </div>
+        <div id="cmp-result-full"></div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT PANEL ────────────────────────────── -->
+    <div id="right-panel">
+
+      <!-- Feature 8: Market Mood Meter -->
+      <div id="mood-section" class="right-section">
+        <div class="mood-title"><i class="fa fa-gauge-high"></i> Market Mood Meter</div>
+        <canvas id="mood-canvas" width="220" height="120"></canvas>
+        <div class="mood-label" id="mood-label">Neutral</div>
+        <div class="mood-value" id="mood-value">50 / 100</div>
+        <div class="mood-scale"><span style="color:var(--red)">Extreme Fear</span><span>Neutral</span><span style="color:var(--green)">Extreme Greed</span></div>
+      </div>
+
+      <!-- Feature 3: Paper Trade mini -->
+      <div id="paper-section" class="right-section">
+        <div class="panel-header" style="padding:0 0 8px">
+          <i class="fa fa-briefcase" style="color:var(--purple);font-size:10px"></i>
+          <span class="panel-title">Paper Trades</span>
+          <button class="hdr-btn" style="padding:3px 8px;font-size:10px" onclick="showView('paper')">All</button>
+        </div>
+        <div id="pt-portfolio" class="pt-portfolio"><div class="pt-empty">No open positions</div></div>
+        <div class="pt-summary">
+          <span class="pt-total-label">Total P&amp;L</span>
+          <span class="pt-total-val" id="pt-total">₹0</span>
+        </div>
+      </div>
+
+      <!-- Feature 9: Opportunity Scanner mini -->
+      <div id="scanner-section" class="right-section" style="flex:1;overflow-y:auto">
+        <div class="panel-header" style="padding:0 0 8px">
+          <i class="fa fa-magnifying-glass-chart" style="color:var(--cyan);font-size:10px"></i>
+          <span class="panel-title">Top Opportunities</span>
+          <button class="hdr-btn" style="padding:3px 8px;font-size:10px" onclick="showView('scanner')">All</button>
+        </div>
+        <div id="scanner-mini"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── ALERT TOASTS ────────────────────────────────── -->
+<div id="alert-badge"></div>
+
+<!-- Feature 6: Greeks Tooltip -->
+<div id="greeks-tooltip" style="display:none">
+  <div class="greeks-title"><i class="fa fa-calculator"></i> Option Greeks</div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Δ</span> Delta</span><span class="greek-val" id="gt-delta">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Γ</span> Gamma</span><span class="greek-val" id="gt-gamma">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">Θ</span> Theta</span><span class="greek-val" id="gt-theta">—</span></div>
+  <div class="greek-row"><span class="greek-name"><span class="greek-symbol">ν</span> Vega</span><span class="greek-val" id="gt-vega">—</span></div>
+  <div class="greek-row" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px">
+    <span class="greek-name">Premium</span><span class="greek-val" id="gt-prem">—</span>
+  </div>
+  <!-- Feature 7: Breakeven Visualizer -->
+  <div class="be-wrap" style="margin-top:8px">
+    <div class="section-label">Breakeven Zone</div>
+    <div class="be-track" id="gt-be-track"></div>
+    <div class="be-labels"><span id="gt-be-low">—</span><span id="gt-be-spot">Spot</span><span id="gt-be-high">—</span></div>
+  </div>
+</div>
+
+<!-- Feature 2: Strategy Wizard Modal -->
+<div class="modal-overlay" id="modal-wizard">
+  <div class="modal-box" style="width:560px">
+    <div class="modal-header">
+      <i class="fa fa-wand-magic-sparkles" style="color:var(--cyan)"></i>
+      <span class="modal-title">Strategy Wizard</span>
+      <button class="modal-close" onclick="closeModal('modal-wizard')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="wizard-steps">
+        <div class="wiz-step active" id="wiz-step-1">1. Direction</div>
+        <span class="wiz-arrow">›</span>
+        <div class="wiz-step" id="wiz-step-2">2. Aggression</div>
+        <span class="wiz-arrow">›</span>
+        <div class="wiz-step" id="wiz-step-3">3. Strategy &amp; P&amp;L</div>
+      </div>
+      <div class="wiz-content" id="wiz-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Feature 4: Alert Builder Modal -->
+<div class="modal-overlay" id="modal-alerts">
+  <div class="modal-box" style="width:440px">
+    <div class="modal-header">
+      <i class="fa fa-bell" style="color:var(--yellow)"></i>
+      <span class="modal-title">Price Alert Builder</span>
+      <button class="modal-close" onclick="closeModal('modal-alerts')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert-form">
+        <div class="form-row">
+          <span class="form-label">Index</span>
+          <select class="form-select" id="alert-idx"></select>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Condition</span>
+          <select class="form-select" id="alert-cond">
+            <option value="above">Price goes ABOVE</option>
+            <option value="below">Price goes BELOW</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <span class="form-label">Target Price</span>
+          <input class="form-input" id="alert-price" type="number" placeholder="Enter price level">
+        </div>
+        <div class="form-row" style="justify-content:flex-end">
+          <button class="btn-primary" onclick="addAlert()"><i class="fa fa-plus"></i> Add Alert</button>
+        </div>
+      </div>
+      <div class="alerts-list" id="alerts-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Influencer Modal -->
+<div class="modal-overlay" id="modal-influencer">
+  <div class="modal-box" style="width:500px">
+    <div class="modal-header">
+      <i class="fa fa-user-circle" style="color:var(--purple)"></i>
+      <span class="modal-title" id="inf-modal-name">Influencer</span>
+      <button class="modal-close" onclick="closeModal('modal-influencer')">&times;</button>
+    </div>
+    <div class="modal-body" id="inf-modal-content"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
