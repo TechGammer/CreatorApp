@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoPulse India | Geopolitical Market Intelligence</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ HEADER ═══════════════════════════════════════ -->
+  <div id="header">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">📡</div>
+      <span class="logo-name">Geo<span>Pulse</span> India</span>
+    </a>
+
+    <div class="header-tickers">
+      <div class="hticker">
+        <span class="hticker-lbl">NIFTY 50</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="hticker-val" id="nifty-val">22,478.50</span>
+        </div>
+        <div id="nifty-chg" class="hticker-chg"></div>
+      </div>
+      <div class="hticker">
+        <span class="hticker-lbl">BANKNIFTY</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="hticker-val" id="bn-val">48,234.70</span>
+        </div>
+        <div id="bn-chg" class="hticker-chg"></div>
+      </div>
+      <div class="hticker" style="min-width:70px">
+        <span class="hticker-lbl">INDIA VIX</span>
+        <span class="hticker-val mono" id="vix-val" style="color:var(--orange)">13.82</span>
+        <span class="hticker-chg down">▼ -0.45</span>
+      </div>
+      <div class="hticker" style="min-width:70px">
+        <span class="hticker-lbl">USD/INR</span>
+        <span class="hticker-val mono" id="usdinr-val">84.92</span>
+        <span class="hticker-chg down">▼ -0.12</span>
+      </div>
+    </div>
+
+    <div id="mkt-badge" class="mkt-badge mkt-open">
+      <span class="pulse-dot"></span>NSE LIVE
+    </div>
+
+    <div style="margin-left:12px">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">GIFT NIFTY</div>
+      <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green)">22,541 <span style="font-size:10px">▲ +87</span></div>
+    </div>
+
+    <div class="hdr-alert-btn" onclick="document.getElementById('feed-posts').scrollTo({top:0,behavior:'smooth'})">
+      <i class="fa fa-bell"></i> ALERTS <span class="badge-num" id="alert-cnt">3</span>
+    </div>
+
+    <span class="clock" id="clock">🕐 --:--:-- IST</span>
+  </div>
+
+  <!-- ═══ NAVBAR ══════════════════════════════════════ -->
+  <div id="navbar">
+    <a class="nav-btn active" href="index.html"><i class="fa fa-chart-line"></i> Dashboard</a>
+    <a class="nav-btn" href="influencers.html"><i class="fa fa-users"></i> Influencers <span class="nav-cnt">50</span></a>
+    <a class="nav-btn" href="options.html"><i class="fa fa-layer-group"></i> Options Chain</a>
+    <a class="nav-btn" href="geopolitics.html"><i class="fa fa-globe"></i> Geopolitics</a>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">DATA SOURCES</span>
+      <span style="font-size:10px;color:var(--cyan);font-weight:600;background:var(--cyan2);padding:2px 7px;border-radius:3px;border:1px solid var(--border-glow)">𝕏 Twitter/X</span>
+      <span style="font-size:10px;color:#e2772e;font-weight:600;background:rgba(226,119,46,.1);padding:2px 7px;border-radius:3px;border:1px solid rgba(226,119,46,.25)">Truth Social</span>
+      <span style="font-size:10px;color:#0a66c2;font-weight:600;background:rgba(10,102,194,.1);padding:2px 7px;border-radius:3px;border:1px solid rgba(10,102,194,.25)">LinkedIn</span>
+      <span style="font-size:10px;color:var(--green);font-weight:600;background:var(--green2);padding:2px 7px;border-radius:3px;border:1px solid rgba(0,230,118,.3)">NSE Live</span>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN 3-COLUMN ════════════════════════════════ -->
+  <div id="main">
+
+    <!-- ── LEFT: SOCIAL FEED ──────────────────────── -->
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title c">Live Feed</span>
+        <div class="live-tag">LIVE</div>
+        <span style="font-size:9px;color:var(--text3);margin-left:4px" id="post-count">0 posts</span>
+        <div style="margin-left:auto;font-size:9px;color:var(--text2);font-weight:600">TOP 50 INFLUENCERS</div>
+      </div>
+      <div class="feed-filters">
+        <button class="fc active" onclick="setFilter('all',this)">All</button>
+        <button class="fc" onclick="setFilter('political',this)">Political</button>
+        <button class="fc" onclick="setFilter('financial',this)">Finance</button>
+        <button class="fc" onclick="setFilter('central_bank',this)">Central Banks</button>
+        <button class="fc" onclick="setFilter('corporate',this)">Corporate</button>
+        <button class="fc" onclick="setFilter('investor',this)">Investors</button>
+        <button class="fc" onclick="setFilter('tech',this)">Tech</button>
+      </div>
+      <div class="pb" id="feed-posts"></div>
+    </div>
+
+    <!-- ── CENTER ─────────────────────────────────── -->
+    <div id="center">
+      <!-- Chart Panel -->
+      <div id="chart-panel">
+        <div class="chart-hdr">
+          <span class="c-symbol">NIFTY50</span>
+          <div>
+            <div class="c-price up" id="chart-price">22,478.50</div>
+            <div class="c-chg" id="chart-chg"></div>
+          </div>
+          <div class="tf-bar">
+            <button class="tf" onclick="setTF(this,'1m')">1m</button>
+            <button class="tf active" onclick="setTF(this,'5m')">5m</button>
+            <button class="tf" onclick="setTF(this,'15m')">15m</button>
+            <button class="tf" onclick="setTF(this,'1h')">1H</button>
+            <button class="tf" onclick="setTF(this,'1d')">1D</button>
+          </div>
+          <div class="c-stats">
+            <div class="c-stat">
+              <span class="cs-lbl">Open</span>
+              <span class="cs-val" id="stat-open">22,401.20</span>
+            </div>
+            <div class="c-stat">
+              <span class="cs-lbl">High</span>
+              <span class="cs-val text-green" id="stat-high">22,541.80</span>
+            </div>
+            <div class="c-stat">
+              <span class="cs-lbl">Low</span>
+              <span class="cs-val text-red" id="stat-low">22,298.45</span>
+            </div>
+            <div class="c-stat">
+              <span class="cs-lbl">Prev Close</span>
+              <span class="cs-val">22,312.30</span>
+            </div>
+          </div>
+        </div>
+        <div id="chart-container"></div>
+      </div>
+
+      <!-- Signals Panel -->
+      <div id="signals">
+        <div class="ph" style="padding:5px 11px">
+          <i class="fa fa-robot" style="color:var(--purple)"></i>
+          <span class="ph-title" style="color:var(--purple)">AI Signal Engine</span>
+          <div class="live-tag">PROCESSING</div>
+        </div>
+        <div class="sig-grid">
+          <div class="sig-card">
+            <span class="sig-lbl">AI Signal</span>
+            <div id="sig-signal"><span class="sig-badge buy">BUY</span></div>
+            <span class="sig-sub" id="sig-strength">Moderate confidence</span>
+          </div>
+          <div class="sig-card">
+            <span class="sig-lbl">Key Support</span>
+            <span class="sig-val text-green" id="sig-support">22,350</span>
+            <span class="sig-sub">Strong put OI buildup</span>
+          </div>
+          <div class="sig-card">
+            <span class="sig-lbl">Key Resistance</span>
+            <span class="sig-val text-red" id="sig-resist">22,600</span>
+            <span class="sig-sub">Heavy call writing</span>
+          </div>
+          <div class="sig-card">
+            <span class="sig-lbl">India VIX</span>
+            <span class="sig-val text-orange" id="sig-vix">13.82</span>
+            <span class="sig-sub">Fear index — low</span>
+          </div>
+        </div>
+        <div id="ai-rec">
+          <span class="air-lbl"><i class="fa fa-brain"></i> AI REC</span>
+          <span class="air-badge air-call" id="air-badge">CALL</span>
+          <span class="air-txt" id="air-text">Loading AI analysis...</span>
+          <span class="air-conf" id="air-conf">AI Confidence: --%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: AI ANALYSIS ─────────────────────── -->
+    <div id="right">
+
+      <!-- Sentiment Meter -->
+      <div class="rsec">
+        <div class="ph">
+          <i class="fa fa-brain" style="color:var(--purple)"></i>
+          <span class="ph-title" style="color:var(--purple)">AI Sentiment</span>
+          <div class="live-tag" style="margin-left:auto">AI LIVE</div>
+        </div>
+        <div class="sent-wrap">
+          <div class="sent-row">
+            <span class="sent-score text-green" id="sent-score">62</span>
+            <span class="sent-label text-green" id="sent-label" style="font-size:11px">BULLISH</span>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin-bottom:6px">Geo-social sentiment from 50 influencers</div>
+          <div class="sent-bar-bg">
+            <div class="sent-bar" id="sent-bar" style="width:62%;background:linear-gradient(90deg,var(--red),var(--orange) 40%,var(--green))"></div>
+          </div>
+          <div class="sent-lbls"><span>Bearish</span><span>Neutral</span><span>Bullish</span></div>
+          <div class="sent-breakdown">
+            <div class="sb-cell"><div class="sb-val text-green" id="sb-bull">--</div><div class="sb-lbl">Bullish</div></div>
+            <div class="sb-cell"><div class="sb-val" style="color:var(--text2)" id="sb-neu">--</div><div class="sb-lbl">Neutral</div></div>
+            <div class="sb-cell"><div class="sb-val text-red" id="sb-bear">--</div><div class="sb-lbl">Bearish</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geo Risk Gauges -->
+      <div class="rsec">
+        <div class="ph">
+          <i class="fa fa-globe" style="color:var(--orange)"></i>
+          <span class="ph-title">Geo Risk Meter</span>
+        </div>
+        <div class="geo-risk-wrap">
+          <div class="geo-title">Global Risk Impact on India Markets</div>
+          <div id="geo-risk-bars"></div>
+        </div>
+      </div>
+
+      <!-- Live Events -->
+      <div class="rsec" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div class="ph">
+          <i class="fa fa-bolt" style="color:var(--yellow)"></i>
+          <span class="ph-title">Live Events</span>
+          <div class="live-tag" style="margin-left:auto">LIVE</div>
+        </div>
+        <div id="events-list" class="events-list pb" style="overflow-y:auto"></div>
+      </div>
+
+      <!-- Mini Options Chain -->
+      <div class="rsec" style="flex-shrink:0">
+        <div class="ph">
+          <i class="fa fa-layer-group" style="color:var(--cyan)"></i>
+          <span class="ph-title c">Options Snapshot</span>
+          <a href="options.html" style="margin-left:auto;font-size:9px;color:var(--cyan);text-decoration:none;font-weight:600">FULL CHAIN →</a>
+        </div>
+        <div class="opt-mini">
+          <div class="opt-title">
+            <span>NIFTY OPTIONS</span>
+            <span class="opt-atm" id="opt-atm-lbl">ATM: 22,500</span>
+          </div>
+          <table class="opt-tbl">
+            <tr><th>Strike</th><th>C.IV</th><th>C.OI</th><th>P.OI</th><th>P.IV</th></tr>
+            <tbody id="opt-mini-rows"></tbody>
+          </table>
+          <div class="opt-stats">
+            <div class="ost"><div class="ost-l">PCR</div><div class="ost-v" id="opt-pcr">--</div></div>
+            <div class="ost"><div class="ost-l">Max Pain</div><div class="ost-v" id="opt-mp">--</div></div>
+            <div class="ost"><div class="ost-l">ATM</div><div class="ost-v text-cyan" id="opt-atm">--</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end #right -->
+  </div><!-- end #main -->
+
+  <!-- ═══ NEWS TICKER ══════════════════════════════════ -->
+  <div id="ticker">
+    <div class="ticker-tag">📡 LIVE</div>
+    <div class="ticker-wrap">
+      <div class="ticker-inner" id="ticker-inner"></div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<script src="app.js"></script>
+<script>
+/* ── FILTER ─────────────────────────────────────── */
+function setFilter(f, btn) {
+  document.querySelectorAll('.fc').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window.GeoPulse.FeedEngine.filter = f;
+  renderFeed(document.getElementById('feed-posts'));
+}
+
+/* ── TIMEFRAME ───────────────────────────────────── */
+function setTF(btn, tf) {
+  document.querySelectorAll('.tf').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ── NEWS TICKER INIT ────────────────────────────── */
+function initTicker() {
+  const inner = document.getElementById('ticker-inner');
+  const {TICKER_ITEMS} = window.GeoPulse || {};
+  if(!inner || !TICKER_ITEMS) return;
+  const colors = {bullish:'var(--green)',bearish:'var(--red)',neutral:'var(--text)'};
+  inner.innerHTML = [...TICKER_ITEMS,...TICKER_ITEMS].map(t=>
+    `<span class="tn" style="color:${colors[t.type]}">${t.txt}</span>`
+  ).join('');
+}
+
+/* ── BOOT ────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  const GP = window.GeoPulse;
+  GP.init();
+
+  // Render initial feed
+  const feedEl = document.getElementById('feed-posts');
+  if(feedEl) {
+    renderFeed(feedEl);
+    document.getElementById('post-count').textContent = GP.FeedEngine.posts.length + ' posts';
+  }
+
+  // Init chart
+  GP.initChart('chart-container');
+
+  // Update all panels
+  GP.updateHeaderTickers();
+  GP.updateSignals();
+  GP.updateSentimentPanel();
+  GP.updateGeoRisk();
+  GP.updateEvents();
+  GP.updateOptMini();
+
+  // Ticker
+  initTicker();
+
+  // Post count updater
+  setInterval(()=>{
+    const el = document.getElementById('post-count');
+    if(el) el.textContent = GP.FeedEngine.posts.length + ' posts';
+  }, 8000);
+
+  // Random alert notification
+  setTimeout(()=>{
+    GP.showToast('🚨 High Impact Alert', 'Jerome Powell: Fed signals pause in rate cuts — Dollar strengthens. Watch Nifty support at 22,200');
+  }, 5000);
+  setTimeout(()=>{
+    GP.showToast('📊 SEBI Alert', 'New F&O margin rules effective next week — Option writers must review positions');
+  }, 12000);
+});
+
+function renderFeed(container) {
+  window.GeoPulse.renderFeed(container);
+}
+</script>
+</body>
+</html>

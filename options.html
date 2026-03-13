@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nifty 50 Options Chain | GeoPulse India</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    #opt-main{flex:1;display:grid;grid-template-columns:1fr 280px;gap:1px;background:var(--border-dim);overflow:hidden}
+    .oi-chart-wrap{padding:10px 12px;flex-shrink:0}
+    .analysis-panel{background:var(--bg-primary);display:flex;flex-direction:column;overflow:hidden}
+    .a-section{padding:10px 12px;border-bottom:1px solid var(--border-dim)}
+    .a-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .pcr-big{font-family:var(--mono);font-size:42px;font-weight:800;line-height:1}
+    .pcr-sub{font-size:11px;font-weight:600;text-transform:uppercase;margin-top:3px}
+    .levels-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .lvl-cell{background:var(--bg-card);border-radius:4px;padding:8px;text-align:center}
+    .lvl-val{font-family:var(--mono);font-size:15px;font-weight:800}
+    .lvl-lbl{font-size:9px;text-transform:uppercase;color:var(--text3);letter-spacing:.3px;margin-top:2px}
+    .strategy-card{background:var(--bg-card);border-radius:5px;padding:10px;margin-bottom:7px;border-left:3px solid var(--cyan)}
+    .sc-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+    .sc-desc{font-size:10px;color:var(--text2);line-height:1.4}
+    .sc-profit{font-size:10px;font-weight:600;margin-top:4px}
+    .chain-header-row{display:flex;background:var(--bg-card);border-bottom:2px solid var(--border)}
+    .chain-side{flex:1;text-align:center;padding:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+    .chain-side.call{color:var(--green);background:rgba(0,230,118,.04)}
+    .chain-side.put{color:var(--red);background:rgba(255,23,68,.04)}
+    .chain-side.strike{color:var(--cyan);min-width:80px;max-width:80px}
+    .oi-bar-cell{position:relative;height:22px}
+    .oi-bar-inner{position:absolute;top:3px;bottom:3px;border-radius:2px}
+    .oi-bar-call{right:0;background:rgba(0,230,118,.25)}
+    .oi-bar-put{left:0;background:rgba(255,23,68,.25)}
+    .expiry-tabs{display:flex;gap:4px;margin-left:auto}
+    .exp-tab{padding:3px 10px;border-radius:3px;border:1px solid var(--border-dim);background:transparent;color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:.15s}
+    .exp-tab.active{background:var(--cyan2);border-color:var(--border-glow);color:var(--cyan)}
+    .oi-chart-canvas{width:100%!important;max-height:150px}
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">📡</div>
+      <span class="logo-name">Geo<span>Pulse</span> India</span>
+    </a>
+    <div class="header-tickers">
+      <div class="hticker">
+        <span class="hticker-lbl">NIFTY 50</span>
+        <span class="hticker-val" id="nifty-val">22,478.50</span>
+        <div id="nifty-chg" class="hticker-chg up">▲ +166.20 (+0.74%)</div>
+      </div>
+      <div class="hticker">
+        <span class="hticker-lbl">BANKNIFTY</span>
+        <span class="hticker-val" id="bn-val">48,234.70</span>
+        <div id="bn-chg" class="hticker-chg up">▲ +342.40</div>
+      </div>
+      <div class="hticker" style="min-width:70px">
+        <span class="hticker-lbl">INDIA VIX</span>
+        <span class="hticker-val" style="color:var(--orange)">13.82</span>
+        <span class="hticker-chg down">▼ -0.45</span>
+      </div>
+    </div>
+    <div id="mkt-badge" class="mkt-badge mkt-open"><span class="pulse-dot"></span>NSE LIVE</div>
+    <span class="clock" id="clock" style="margin-left:auto">🕐 --:--:-- IST</span>
+  </div>
+
+  <!-- NAVBAR -->
+  <div id="navbar">
+    <a class="nav-btn" href="index.html"><i class="fa fa-chart-line"></i> Dashboard</a>
+    <a class="nav-btn" href="influencers.html"><i class="fa fa-users"></i> Influencers <span class="nav-cnt">50</span></a>
+    <a class="nav-btn active" href="options.html"><i class="fa fa-layer-group"></i> Options Chain</a>
+    <a class="nav-btn" href="geopolitics.html"><i class="fa fa-globe"></i> Geopolitics</a>
+  </div>
+
+  <!-- OPTIONS HEADER STATS -->
+  <div class="opt-chain-hdr">
+    <div style="font-size:13px;font-weight:800;color:var(--text)"><i class="fa fa-layer-group" style="color:var(--cyan)"></i> NIFTY50 Options Chain</div>
+    <div class="ostat">
+      <div class="ostat-l">SPOT</div>
+      <div class="ostat-v" id="opt-spot">22,478</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">ATM STRIKE</div>
+      <div class="ostat-v text-cyan" id="opt-atm-big">22,500</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">PCR (OI)</div>
+      <div class="ostat-v" id="opt-pcr-big">--</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">MAX PAIN</div>
+      <div class="ostat-v text-orange" id="opt-mp-big">--</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">TOTAL CALL OI</div>
+      <div class="ostat-v text-green" id="opt-call-oi">--</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">TOTAL PUT OI</div>
+      <div class="ostat-v text-red" id="opt-put-oi">--</div>
+    </div>
+    <div class="ostat">
+      <div class="ostat-l">ATM IV</div>
+      <div class="ostat-v text-purple" id="opt-atm-iv">--</div>
+    </div>
+    <div class="expiry-tabs" id="expiry-tabs">
+      <button class="exp-tab active" onclick="setExpiry(this,'27 Mar')">27 Mar</button>
+      <button class="exp-tab" onclick="setExpiry(this,'3 Apr')">3 Apr</button>
+      <button class="exp-tab" onclick="setExpiry(this,'10 Apr')">10 Apr</button>
+      <button class="exp-tab" onclick="setExpiry(this,'24 Apr')">24 Apr</button>
+    </div>
+  </div>
+
+  <div id="opt-main">
+
+    <!-- OPTIONS CHAIN TABLE + OI Chart -->
+    <div style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg-primary)">
+
+      <!-- OI Chart -->
+      <div class="oi-chart-wrap">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px">
+          OPEN INTEREST DISTRIBUTION — <span style="color:var(--green)">■ CALL OI</span> vs <span style="color:var(--red)">■ PUT OI</span>
+        </div>
+        <canvas id="oi-chart" class="oi-chart-canvas" height="120"></canvas>
+      </div>
+
+      <!-- Chain column headers -->
+      <div class="chain-header-row">
+        <div class="chain-side call" style="display:grid;grid-template-columns:repeat(5,1fr)">
+          <span>OI Chg</span><span>OI(K)</span><span>Vol</span><span>IV%</span><span>LTP</span>
+        </div>
+        <div class="chain-side strike">STRIKE</div>
+        <div class="chain-side put" style="display:grid;grid-template-columns:repeat(5,1fr)">
+          <span>LTP</span><span>IV%</span><span>Vol</span><span>OI(K)</span><span>OI Chg</span>
+        </div>
+      </div>
+
+      <!-- Chain rows -->
+      <div class="chain-wrap" style="padding:0">
+        <table class="chain-tbl">
+          <thead>
+            <tr>
+              <th class="ch">OI Chg</th><th class="ch">OI (K)</th><th class="ch">Volume</th>
+              <th class="ch">IV %</th><th class="ch" style="min-width:60px">LTP ₹</th>
+              <th class="sh">STRIKE</th>
+              <th class="ph" style="min-width:60px">LTP ₹</th><th class="ph">IV %</th>
+              <th class="ph">Volume</th><th class="ph">OI (K)</th><th class="ph">OI Chg</th>
+            </tr>
+          </thead>
+          <tbody id="chain-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RIGHT ANALYSIS PANEL -->
+    <div class="analysis-panel">
+      <div class="ph">
+        <i class="fa fa-brain" style="color:var(--purple)"></i>
+        <span class="ph-title" style="color:var(--purple)">AI Options Analysis</span>
+        <div class="live-tag" style="margin-left:auto">AI</div>
+      </div>
+
+      <div style="overflow-y:auto;flex:1">
+
+        <!-- PCR Meter -->
+        <div class="a-section">
+          <div class="a-title"><i class="fa fa-chart-bar"></i> Put-Call Ratio</div>
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <div class="pcr-big" id="pcr-display">--</div>
+            <div>
+              <div class="pcr-sub text-green" id="pcr-label">NEUTRAL</div>
+              <div style="font-size:9px;color:var(--text3)">OI-based PCR</div>
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <div style="height:8px;background:linear-gradient(90deg,var(--red),var(--orange),var(--green));border-radius:4px;position:relative">
+              <div id="pcr-pointer" style="position:absolute;top:-2px;width:4px;height:12px;background:white;border-radius:2px;transform:translateX(-50%);box-shadow:0 0 5px rgba(255,255,255,.5);transition:left .5s ease;left:50%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.3px">
+              <span>Bearish(0.5)</span><span>Neutral(1.0)</span><span>Bullish(1.5+)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Levels -->
+        <div class="a-section">
+          <div class="a-title"><i class="fa fa-crosshairs"></i> Key Levels</div>
+          <div class="levels-grid">
+            <div class="lvl-cell">
+              <div class="lvl-val text-red" id="lvl-res2">22,700</div>
+              <div class="lvl-lbl">Strong Resistance</div>
+            </div>
+            <div class="lvl-cell">
+              <div class="lvl-val text-orange" id="lvl-res1">22,550</div>
+              <div class="lvl-lbl">Resistance</div>
+            </div>
+            <div class="lvl-cell" style="border:1px solid var(--cyan);background:rgba(0,212,255,.05)">
+              <div class="lvl-val text-cyan" id="lvl-atm">22,500</div>
+              <div class="lvl-lbl">ATM / Max Pain</div>
+            </div>
+            <div class="lvl-cell">
+              <div class="lvl-val text-orange" id="lvl-sup1">22,350</div>
+              <div class="lvl-lbl">Support</div>
+            </div>
+            <div class="lvl-cell" style="grid-column:span 2">
+              <div class="lvl-val text-green" id="lvl-sup2">22,200</div>
+              <div class="lvl-lbl">Strong Support (Put OI wall)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IV Analysis -->
+        <div class="a-section">
+          <div class="a-title"><i class="fa fa-wave-square"></i> Implied Volatility</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">
+            <div style="background:var(--bg-card);padding:6px;border-radius:4px;text-align:center">
+              <div class="mono fw7 text-purple" id="iv-atm">17.8%</div>
+              <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">ATM IV</div>
+            </div>
+            <div style="background:var(--bg-card);padding:6px;border-radius:4px;text-align:center">
+              <div class="mono fw7" style="color:var(--yellow)">18.5%</div>
+              <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">30D HV</div>
+            </div>
+            <div style="background:var(--bg-card);padding:6px;border-radius:4px;text-align:center">
+              <div class="mono fw7 text-orange">IV: LOW</div>
+              <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">IV Rank</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text2);line-height:1.5;padding:6px;background:rgba(180,79,255,.07);border-radius:4px;border-left:2px solid var(--purple)">
+            💡 IV relatively low — good time for <strong style="color:var(--green)">buying options</strong>. Geo-risk events may spike IV before Fed meet.
+          </div>
+        </div>
+
+        <!-- AI Strategies -->
+        <div class="a-section">
+          <div class="a-title"><i class="fa fa-robot"></i> AI Strategy Picks</div>
+
+          <div class="strategy-card" id="strat-1">
+            <div class="sc-name">🎯 Bull Call Spread</div>
+            <div class="sc-desc">Buy <span id="strat-buy">22,500CE</span> + Sell <span id="strat-sell">22,700CE</span></div>
+            <div class="sc-profit" style="color:var(--green)">Max Profit: ₹<span id="strat-profit">3,800</span> | Risk: ₹<span id="strat-risk">1,200</span></div>
+            <div style="font-size:9px;color:var(--text2);margin-top:3px">Sentiment: Bullish | Confidence: <span id="strat-conf">72%</span></div>
+          </div>
+
+          <div class="strategy-card" style="border-left-color:var(--orange)">
+            <div class="sc-name">🛡 Iron Condor</div>
+            <div class="sc-desc">Sell 22,200PE + Buy 22,000PE + Sell 22,800CE + Buy 23,000CE</div>
+            <div class="sc-profit" style="color:var(--orange)">Max Profit: ₹<span id="ic-profit">4,200</span> | Range: 22,200-22,800</div>
+            <div style="font-size:9px;color:var(--text2);margin-top:3px">Strategy for sideways market | Theta decay benefits</div>
+          </div>
+
+          <div class="strategy-card" style="border-left-color:var(--purple)">
+            <div class="sc-name">⚡ ATM Straddle (Breakout Play)</div>
+            <div class="sc-desc">Buy <span id="strad-ce">22,500CE</span> + Buy <span id="strad-pe">22,500PE</span></div>
+            <div class="sc-profit" style="color:var(--purple)">Premium: ₹<span id="strad-prem">285</span> | Break-even: <span id="strad-be">22,215 / 22,785</span></div>
+            <div style="font-size:9px;color:var(--text2);margin-top:3px">Geo-event risk play | Fed + RBI events expected</div>
+          </div>
+        </div>
+
+        <!-- OI Change Summary -->
+        <div class="a-section">
+          <div class="a-title"><i class="fa fa-arrow-trend-up"></i> OI Change Analysis</div>
+          <div style="font-size:10px;color:var(--text);line-height:1.7" id="oi-analysis">
+            📊 <strong style="color:var(--green)">Strong Call Writing</strong> at 22,700-22,800 — ceiling forming<br>
+            📊 <strong style="color:var(--red)">Put Unwinding</strong> at 22,200 — support weakening slightly<br>
+            📊 <strong style="color:var(--cyan)">Put Writing</strong> at 22,400 — fresh floor being built<br>
+            🎯 <strong style="color:var(--yellow)">Expiry range estimate</strong>: 22,300 - 22,700
+          </div>
+        </div>
+
+      </div><!-- end scrollable -->
+    </div><!-- end analysis panel -->
+
+  </div><!-- end opt-main -->
+
+  <!-- Ticker -->
+  <div id="ticker">
+    <div class="ticker-tag">📡 LIVE</div>
+    <div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner"></div></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+let currentExpiry = '27 Mar';
+let oiChart = null;
+
+function setExpiry(btn, expiry) {
+  currentExpiry = expiry;
+  document.querySelectorAll('.exp-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChain();
+}
+
+function renderChain() {
+  const GP = window.GeoPulse;
+  const spot = GP.NiftyEngine.current;
+  const atm = GP.OptionsEngine.getATM(spot);
+  const chain = GP.OptionsEngine.buildChain(spot, 20);
+  const maxOI = Math.max(...chain.map(r=>Math.max(r.callOI,r.putOI)));
+
+  let html = '';
+  chain.forEach(r => {
+    const itmC = r.isITMCall ? 'itm-c' : '';
+    const itmP = r.isITMPut ? 'itm-p' : '';
+    const atmCls = r.isATM ? 'atm' : '';
+    const callChg = (Math.random()-0.4)*r.callOI*0.1;
+    const putChg = (Math.random()-0.4)*r.putOI*0.1;
+    const cChgColor = callChg>0?'var(--green)':'var(--red)';
+    const pChgColor = putChg>0?'var(--green)':'var(--red)';
+
+    html += `<tr class="${atmCls}">
+      <td class="${itmC}" style="color:${cChgColor}">${callChg>0?'+':''}${(callChg/1000).toFixed(0)}K</td>
+      <td class="${itmC} c-oi">${(r.callOI/1000).toFixed(0)}K</td>
+      <td class="${itmC}" style="color:var(--text2)">${(r.callVol/1000).toFixed(0)}K</td>
+      <td class="${itmC} c-iv">${r.callIV}%</td>
+      <td class="${itmC}" style="color:var(--green);font-weight:600">₹${r.callPrice.toFixed(1)}</td>
+      <td class="strike ${atmCls}">${r.isATM?'⭐ ':''}<span style="font-family:var(--mono)">${r.strike}</span>${r.isATM?` <span style="font-size:8px;color:var(--cyan)">ATM</span>`:''}</td>
+      <td class="${itmP}" style="color:var(--red);font-weight:600">₹${r.putPrice.toFixed(1)}</td>
+      <td class="${itmP} p-iv">${r.putIV}%</td>
+      <td class="${itmP}" style="color:var(--text2)">${(r.putVol/1000).toFixed(0)}K</td>
+      <td class="${itmP} p-oi">${(r.putOI/1000).toFixed(0)}K</td>
+      <td class="${itmP}" style="color:${pChgColor}">${putChg>0?'+':''}${(putChg/1000).toFixed(0)}K</td>
+    </tr>`;
+  });
+
+  document.getElementById('chain-tbody').innerHTML = html;
+
+  // Update stats
+  const pcr = GP.OptionsEngine.getPCR(chain);
+  const mp = GP.OptionsEngine.getMaxPain(chain);
+  const atmRow = chain.find(r=>r.isATM);
+
+  document.getElementById('opt-spot').textContent = Math.round(spot).toLocaleString('en-IN');
+  document.getElementById('opt-atm-big').textContent = atm.toLocaleString('en-IN');
+  document.getElementById('opt-pcr-big').textContent = pcr;
+  document.getElementById('opt-pcr-big').style.color = pcr>1.2?'var(--green)':pcr<0.8?'var(--red)':'var(--orange)';
+  document.getElementById('opt-mp-big').textContent = mp.toLocaleString('en-IN');
+
+  const totalCallOI = chain.reduce((a,c)=>a+c.callOI,0);
+  const totalPutOI = chain.reduce((a,c)=>a+c.putOI,0);
+  document.getElementById('opt-call-oi').textContent = (totalCallOI/100000).toFixed(1)+'L';
+  document.getElementById('opt-put-oi').textContent = (totalPutOI/100000).toFixed(1)+'L';
+  if(atmRow) {
+    document.getElementById('opt-atm-iv').textContent = atmRow.callIV+'%';
+    document.getElementById('iv-atm').textContent = atmRow.callIV+'%';
+  }
+
+  // PCR panel
+  document.getElementById('pcr-display').textContent = pcr;
+  document.getElementById('pcr-display').style.color = pcr>1.2?'var(--green)':pcr<0.8?'var(--red)':'var(--orange)';
+  const pcrLabel = pcr>1.3?'BULLISH (Put Heavy)':pcr>1.1?'MILDLY BULLISH':pcr<0.7?'BEARISH':pcr<0.9?'MILDLY BEARISH':'NEUTRAL';
+  document.getElementById('pcr-label').textContent = pcrLabel;
+  document.getElementById('pcr-label').style.color = pcr>1.1?'var(--green)':pcr<0.9?'var(--red)':'var(--orange)';
+  const pcrPct = Math.min(100,Math.max(0,(pcr-0.5)/1.5*100));
+  document.getElementById('pcr-pointer').style.left = pcrPct+'%';
+
+  // Key levels
+  document.getElementById('lvl-atm').textContent = atm.toLocaleString('en-IN');
+  document.getElementById('lvl-res1').textContent = (atm+100).toLocaleString('en-IN');
+  document.getElementById('lvl-res2').textContent = (atm+300).toLocaleString('en-IN');
+  document.getElementById('lvl-sup1').textContent = (atm-100).toLocaleString('en-IN');
+  document.getElementById('lvl-sup2').textContent = (atm-300).toLocaleString('en-IN');
+
+  // Strategy
+  document.getElementById('strat-buy').textContent = atm+'CE';
+  document.getElementById('strat-sell').textContent = (atm+200)+'CE';
+  document.getElementById('strad-ce').textContent = atm+'CE';
+  document.getElementById('strad-pe').textContent = atm+'PE';
+
+  // Update OI chart
+  updateOIChart(chain, atm);
+}
+
+function updateOIChart(chain, atm) {
+  const ctx = document.getElementById('oi-chart');
+  if(!ctx) return;
+  const slice = chain.slice(5,16);
+  const labels = slice.map(r=>r.strike);
+  const callData = slice.map(r=>r.callOI/1000);
+  const putData = slice.map(r=>r.putOI/1000);
+
+  if(oiChart) {
+    oiChart.data.labels = labels;
+    oiChart.data.datasets[0].data = callData;
+    oiChart.data.datasets[1].data = putData;
+    oiChart.update('none');
+  } else {
+    oiChart = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Call OI (K)',data:callData,backgroundColor:'rgba(0,230,118,.3)',borderColor:'rgba(0,230,118,.6)',borderWidth:1},
+          {label:'Put OI (K)',data:putData,backgroundColor:'rgba(255,23,68,.3)',borderColor:'rgba(255,23,68,.6)',borderWidth:1},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(0)}K`}}},
+        scales:{
+          x:{ticks:{color:'#6e8ab0',font:{size:9},maxRotation:0},grid:{color:'rgba(26,48,96,.3)'},border:{color:'rgba(26,48,96,.5)'}},
+          y:{ticks:{color:'#6e8ab0',font:{size:9}},grid:{color:'rgba(26,48,96,.3)'},border:{color:'rgba(26,48,96,.5)'}},
+        },
+        animation:{duration:400}
+      }
+    });
+  }
+}
+
+const TICKER_ITEMS = [
+  {txt:'NIFTY OPTIONS: Max Pain at 22,500 — call writers in control above',type:'neutral'},
+  {txt:'PCR (OI): 1.18 — mildly bullish, put writers adding at 22,300',type:'bullish'},
+  {txt:'INDIA VIX: 13.82 — low volatility, ideal for spreads strategy',type:'bullish'},
+  {txt:'SEBI: Weekly expiry rationalization — single weekly expiry from April',type:'neutral'},
+  {txt:'FII: Sold ₹2,847cr in F&O segment — net short positions building',type:'bearish'},
+  {txt:'BIG TRADE: 25,000 lots NIFTY 22,800CE bought — bullish bet',type:'bullish'},
+];
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const GP = window.GeoPulse;
+  GP.init();
+  renderChain();
+  GP.updateClock();
+  setInterval(GP.updateClock,1000);
+
+  setInterval(()=>{
+    GP.NiftyEngine.tick();
+    GP.BankNiftyEngine.tick();
+    GP.updateHeaderTickers();
+    renderChain();
+  }, 3000);
+
+  const inner = document.getElementById('ticker-inner');
+  if(inner) inner.innerHTML = [...TICKER_ITEMS,...TICKER_ITEMS].map(t=>
+    `<span class="tn" style="color:${t.type==='bullish'?'var(--green)':t.type==='bearish'?'var(--red)':'var(--text)'}">${t.txt}</span>`
+  ).join('');
+});
+</script>
+</body>
+</html>

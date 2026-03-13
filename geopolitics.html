@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitics Analysis | GeoPulse India</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    #geo-content{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:var(--bg-base)}
+    .geo-card{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+    .geo-ch{padding:8px 12px;border-bottom:1px solid var(--border-dim);background:var(--bg-secondary);display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .geo-ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+    .geo-cb{padding:10px 12px;flex:1}
+    .heat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+    .hc{padding:10px 8px;border-radius:5px;text-align:center;cursor:pointer;transition:.15s}
+    .hc:hover{filter:brightness(1.2)}
+    .hc-flag{font-size:20px;margin-bottom:3px}
+    .hc-name{font-size:11px;font-weight:700;color:var(--text)}
+    .hc-score{font-family:var(--mono);font-size:18px;font-weight:800;margin:2px 0}
+    .hc-lbl{font-size:8px;text-transform:uppercase;opacity:.7;letter-spacing:.3px}
+    .hc-desc{font-size:9px;color:var(--text2);margin-top:3px;line-height:1.3}
+    .risk-none{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25)}
+    .risk-low{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25)}
+    .risk-med{background:rgba(255,145,0,.1);border:1px solid rgba(255,145,0,.25)}
+    .risk-high{background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.3)}
+    .risk-crit{background:rgba(255,23,68,.22);border:1px solid rgba(255,23,68,.5);animation:rcrit 2s infinite}
+    @keyframes rcrit{0%,100%{box-shadow:0 0 5px rgba(255,23,68,.3)}50%{box-shadow:0 0 20px rgba(255,23,68,.6)}}
+    .gte{padding:8px 12px;border-bottom:1px solid var(--border-dim);display:flex;gap:8px;align-items:flex-start;cursor:pointer;transition:.15s}
+    .gte:hover{background:var(--bg-hover)}
+    .gte-time{font-family:var(--mono);font-size:9px;color:var(--text3);white-space:nowrap;padding-top:2px;width:38px;flex-shrink:0}
+    .gte-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;flex-shrink:0}
+    .gte-body{flex:1}
+    .gte-title{font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px}
+    .gte-desc{font-size:10px;color:var(--text2);line-height:1.4}
+    .gte-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+    .gte-tag{font-size:9px;padding:1px 6px;border-radius:2px;background:var(--cyan2);color:var(--cyan);border:1px solid rgba(0,212,255,.2)}
+    .gte-imp{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:1px;white-space:nowrap}
+    .sec-bar-wrap{position:relative;height:18px;background:var(--bg-secondary);border-radius:3px;overflow:visible;margin:2px 0}
+    .sec-midline{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border);z-index:1}
+    .sec-bar-pos{position:absolute;left:50%;height:100%;border-radius:0 3px 3px 0;display:flex;align-items:center;padding-left:4px;font-size:9px;font-weight:700;z-index:2}
+    .sec-bar-neg{position:absolute;right:50%;height:100%;border-radius:3px 0 0 3px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;font-size:9px;font-weight:700;z-index:2}
+    .geo-alert{padding:8px 12px;display:flex;gap:8px;align-items:flex-start;border-bottom:1px solid var(--border-dim);cursor:pointer;transition:.15s}
+    .geo-alert:hover{background:var(--bg-hover)}
+    .ga-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+    .ga-body{flex:1}
+    .ga-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px}
+    .ga-desc{font-size:10px;color:var(--text2);line-height:1.4}
+    .ga-time{font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+    .geo-card.full-width{grid-column:span 2}
+    .world-risk-bar{height:8px;background:linear-gradient(90deg,var(--green),var(--orange) 50%,var(--red));border-radius:4px;margin-bottom:5px;position:relative}
+    .world-risk-ptr{position:absolute;top:-3px;width:6px;height:14px;background:white;border-radius:3px;transform:translateX(-50%);box-shadow:0 0 5px rgba(255,255,255,.5);transition:left .5s}
+    .india-impact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+    .iig-cell{background:var(--bg-secondary);border-radius:4px;padding:8px;border-left:3px solid var(--border)}
+    .iig-title{font-size:10px;font-weight:700;color:var(--text);margin-bottom:3px}
+    .iig-val{font-family:var(--mono);font-size:13px;font-weight:700}
+    .iig-desc{font-size:9px;color:var(--text2);margin-top:2px;line-height:1.3}
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <a class="logo" href="index.html">
+      <div class="logo-icon">📡</div>
+      <span class="logo-name">Geo<span>Pulse</span> India</span>
+    </a>
+    <div class="header-tickers">
+      <div class="hticker">
+        <span class="hticker-lbl">NIFTY 50</span>
+        <span class="hticker-val" id="nifty-val">22,478.50</span>
+        <div id="nifty-chg" class="hticker-chg up">▲ +166.20 (+0.74%)</div>
+      </div>
+      <div class="hticker">
+        <span class="hticker-lbl">BRENT CRUDE</span>
+        <span class="hticker-val" style="color:var(--orange)" id="crude-val">$83.40</span>
+        <div class="hticker-chg up">▲ +$1.20 (+1.46%)</div>
+      </div>
+      <div class="hticker">
+        <span class="hticker-lbl">DXY</span>
+        <span class="hticker-val" id="dxy-val">104.82</span>
+        <div class="hticker-chg up">▲ +0.34</div>
+      </div>
+      <div class="hticker">
+        <span class="hticker-lbl">USD/INR</span>
+        <span class="hticker-val" id="usdinr-val">84.92</span>
+        <div class="hticker-chg down">▼ -0.12</div>
+      </div>
+    </div>
+    <div id="mkt-badge" class="mkt-badge mkt-open"><span class="pulse-dot"></span>NSE LIVE</div>
+    <span class="clock" id="clock" style="margin-left:auto">🕐 --:--:-- IST</span>
+  </div>
+
+  <!-- NAVBAR -->
+  <div id="navbar">
+    <a class="nav-btn" href="index.html"><i class="fa fa-chart-line"></i> Dashboard</a>
+    <a class="nav-btn" href="influencers.html"><i class="fa fa-users"></i> Influencers <span class="nav-cnt">50</span></a>
+    <a class="nav-btn" href="options.html"><i class="fa fa-layer-group"></i> Options Chain</a>
+    <a class="nav-btn active" href="geopolitics.html"><i class="fa fa-globe"></i> Geopolitics</a>
+  </div>
+
+  <!-- Page header -->
+  <div class="page-hdr">
+    <div>
+      <div class="page-title"><i class="fa fa-globe-asia" style="color:var(--cyan)"></i> Geopolitical Risk Intelligence</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:2px">Real-time geopolitical risk analysis — impact on Indian stock markets, Nifty50 &amp; sectoral indices</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <div style="text-align:right">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)">Global Risk Index</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:800;color:var(--orange)" id="global-risk-idx">68</div>
+      </div>
+      <div style="width:80px">
+        <div class="world-risk-bar"><div class="world-risk-ptr" id="risk-ptr" style="left:68%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text3)"><span>Low</span><span>High</span></div>
+      </div>
+      <div style="background:rgba(255,145,0,.15);border:1px solid rgba(255,145,0,.3);color:var(--orange);padding:4px 10px;border-radius:4px;font-size:10px;font-weight:800;text-transform:uppercase">
+        ⚠️ ELEVATED
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GEO CONTENT -->
+  <div id="geo-content">
+
+    <!-- WORLD RISK HEAT MAP -->
+    <div class="geo-card">
+      <div class="geo-ch">
+        <i class="fa fa-map" style="color:var(--red)"></i>
+        <span class="geo-ct">Global Risk Heat Map — India Market Impact</span>
+        <div class="live-tag" style="margin-left:auto">AI UPDATED</div>
+      </div>
+      <div class="geo-cb">
+        <div class="heat-grid" id="heat-grid"></div>
+      </div>
+    </div>
+
+    <!-- LIVE EVENTS TIMELINE -->
+    <div class="geo-card" style="overflow:hidden">
+      <div class="geo-ch">
+        <i class="fa fa-bolt" style="color:var(--yellow)"></i>
+        <span class="geo-ct">Live Event Timeline</span>
+        <div class="live-tag" style="margin-left:auto">LIVE</div>
+      </div>
+      <div style="overflow-y:auto;flex:1" id="event-timeline"></div>
+    </div>
+
+    <!-- SECTOR IMPACT -->
+    <div class="geo-card">
+      <div class="geo-ch">
+        <i class="fa fa-chart-bar" style="color:var(--cyan)"></i>
+        <span class="geo-ct">Sector Impact Analysis — Current Geo Events</span>
+      </div>
+      <div class="geo-cb">
+        <div id="sector-impact"></div>
+      </div>
+    </div>
+
+    <!-- INDIA MACRO SNAPSHOT -->
+    <div class="geo-card">
+      <div class="geo-ch">
+        <i class="fa fa-flag" style="color:var(--green)"></i>
+        <span class="geo-ct">India Macro Snapshot</span>
+      </div>
+      <div class="geo-cb">
+        <div class="india-impact-grid">
+          <div class="iig-cell" style="border-color:var(--orange)">
+            <div class="iig-title">Current Account Deficit</div>
+            <div class="iig-val text-orange">$18.2Bn</div>
+            <div class="iig-desc">Oil at $83 = 2.1% of GDP. Manageable but elevated crude is a risk.</div>
+          </div>
+          <div class="iig-cell" style="border-color:var(--green)">
+            <div class="iig-title">Forex Reserves</div>
+            <div class="iig-val text-green">$648Bn</div>
+            <div class="iig-desc">~10 months import cover. RBI can defend INR at 85/USD.</div>
+          </div>
+          <div class="iig-cell" style="border-color:var(--red)">
+            <div class="iig-title">FII Flow (YTD)</div>
+            <div class="iig-val text-red">-₹1.84L cr</div>
+            <div class="iig-desc">Massive outflows due to strong dollar &amp; China reallocation.</div>
+          </div>
+          <div class="iig-cell" style="border-color:var(--cyan)">
+            <div class="iig-title">DII Flow (YTD)</div>
+            <div class="iig-val text-cyan">+₹2.12L cr</div>
+            <div class="iig-desc">Domestic SIP + insurance cushioning FII selling pressure.</div>
+          </div>
+          <div class="iig-cell" style="border-color:var(--green)">
+            <div class="iig-title">GDP Growth FY25</div>
+            <div class="iig-val text-green">6.8%</div>
+            <div class="iig-desc">Fastest growing major economy. IMF upgraded to 6.5% for FY26.</div>
+          </div>
+          <div class="iig-cell" style="border-color:var(--yellow)">
+            <div class="iig-title">Inflation (CPI)</div>
+            <div class="iig-val text-yellow">4.8%</div>
+            <div class="iig-desc">Within RBI tolerance band. Rate cut window may open Q2 FY26.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GEOPOLITICAL ALERTS -->
+    <div class="geo-card">
+      <div class="geo-ch">
+        <i class="fa fa-bell" style="color:var(--red)"></i>
+        <span class="geo-ct">Active Geopolitical Alerts</span>
+        <span style="margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 7px;border-radius:8px;font-weight:700;animation:pdot 1.5s infinite" id="alert-count-badge">6</span>
+      </div>
+      <div style="overflow-y:auto;flex:1" id="geo-alerts"></div>
+    </div>
+
+    <!-- OI & SENTIMENT CHART -->
+    <div class="geo-card">
+      <div class="geo-ch">
+        <i class="fa fa-chart-line" style="color:var(--purple)"></i>
+        <span class="geo-ct">Geo-Sentiment vs Nifty Correlation</span>
+        <div class="live-tag" style="margin-left:auto">AI LIVE</div>
+      </div>
+      <div class="geo-cb" style="display:flex;flex-direction:column;gap:8px">
+        <canvas id="sentiment-chart" height="160"></canvas>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px">
+          <div style="background:var(--bg-secondary);border-radius:4px;padding:7px;text-align:center">
+            <div class="mono fw7 text-cyan" id="corr-fii">-0.72</div>
+            <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">FII Corr</div>
+          </div>
+          <div style="background:var(--bg-secondary);border-radius:4px;padding:7px;text-align:center">
+            <div class="mono fw7 text-orange" id="corr-crude">-0.68</div>
+            <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">Crude Corr</div>
+          </div>
+          <div style="background:var(--bg-secondary);border-radius:4px;padding:7px;text-align:center">
+            <div class="mono fw7 text-green" id="corr-dii">+0.84</div>
+            <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">DII Corr</div>
+          </div>
+          <div style="background:var(--bg-secondary);border-radius:4px;padding:7px;text-align:center">
+            <div class="mono fw7 text-red" id="corr-dxy">-0.61</div>
+            <div style="font-size:8px;text-transform:uppercase;color:var(--text3)">DXY Corr</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text2);line-height:1.6;padding:8px;background:rgba(180,79,255,.07);border-radius:4px;border-left:2px solid var(--purple)">
+          <strong style="color:var(--purple)">🤖 AI Insight:</strong> Current geopolitical risk score <strong style="color:var(--orange)">68/100</strong> suggests elevated uncertainty.
+          Trump tariff threats, Fed hawkishness, and Middle East tensions creating headwinds.
+          However, India's strong macro fundamentals and DII buying providing support.
+          <strong style="color:var(--cyan)">Nifty likely range-bound 22,000–23,000</strong> unless a major geo event triggers dislocation.
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY UPCOMING EVENTS -->
+    <div class="geo-card full-width">
+      <div class="geo-ch">
+        <i class="fa fa-calendar" style="color:var(--cyan)"></i>
+        <span class="geo-ct">Upcoming High-Impact Events Calendar</span>
+      </div>
+      <div class="geo-cb" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+        <div style="background:var(--bg-secondary);border-radius:5px;padding:10px;border-top:3px solid var(--red)">
+          <div style="font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase;margin-bottom:5px">CRITICAL</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">Fed FOMC</div>
+          <div style="font-size:10px;color:var(--text2)">Mar 19-20, 2026</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4">Rate decision + dot plot. 60% hold, 40% cut odds.</div>
+          <div style="margin-top:6px;font-size:9px;padding:2px 6px;background:var(--red2);color:var(--red);border-radius:3px;display:inline-block;font-weight:700">NIFTY IMPACT: HIGH</div>
+        </div>
+        <div style="background:var(--bg-secondary);border-radius:5px;padding:10px;border-top:3px solid var(--orange)">
+          <div style="font-size:9px;font-weight:700;color:var(--orange);text-transform:uppercase;margin-bottom:5px">HIGH</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">RBI MPC</div>
+          <div style="font-size:10px;color:var(--text2)">Apr 7-9, 2026</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4">Rate cut probability 55%. Accommodation stance expected.</div>
+          <div style="margin-top:6px;font-size:9px;padding:2px 6px;background:var(--orange2);color:var(--orange);border-radius:3px;display:inline-block;font-weight:700">BANKNIFTY IMPACT: VERY HIGH</div>
+        </div>
+        <div style="background:var(--bg-secondary);border-radius:5px;padding:10px;border-top:3px solid var(--orange)">
+          <div style="font-size:9px;font-weight:700;color:var(--orange);text-transform:uppercase;margin-bottom:5px">HIGH</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">US Q1 GDP</div>
+          <div style="font-size:10px;color:var(--text2)">Apr 30, 2026</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4">Expected 2.1%. Slowdown would pressure EM, including India.</div>
+          <div style="margin-top:6px;font-size:9px;padding:2px 6px;background:var(--orange2);color:var(--orange);border-radius:3px;display:inline-block;font-weight:700">FII FLOW IMPACT: HIGH</div>
+        </div>
+        <div style="background:var(--bg-secondary);border-radius:5px;padding:10px;border-top:3px solid var(--yellow)">
+          <div style="font-size:9px;font-weight:700;color:var(--yellow);text-transform:uppercase;margin-bottom:5px">MEDIUM</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">OPEC+ Meeting</div>
+          <div style="font-size:10px;color:var(--text2)">Apr 5, 2026</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4">Production cut review. Crude direction determines OMC stocks.</div>
+          <div style="margin-top:6px;font-size:9px;padding:2px 6px;background:rgba(255,215,0,.15);color:var(--yellow);border-radius:3px;display:inline-block;font-weight:700">OIL SECTOR IMPACT: HIGH</div>
+        </div>
+        <div style="background:var(--bg-secondary);border-radius:5px;padding:10px;border-top:3px solid var(--cyan)">
+          <div style="font-size:9px;font-weight:700;color:var(--cyan);text-transform:uppercase;margin-bottom:5px">WATCH</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">India Q4 GDP</div>
+          <div style="font-size:10px;color:var(--text2)">May 30, 2026</div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4">Expected 7.1%. Strong data = re-rating catalyst for Nifty.</div>
+          <div style="margin-top:6px;font-size:9px;padding:2px 6px;background:var(--cyan2);color:var(--cyan);border-radius:3px;display:inline-block;font-weight:700">NIFTY IMPACT: MEDIUM</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Ticker -->
+  <div id="ticker">
+    <div class="ticker-tag">📡 LIVE</div>
+    <div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner"></div></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+const COUNTRY_RISKS = [
+  {flag:'🇺🇸',name:'USA',score:68,level:'high',desc:'Tariff threats, Fed hawkishness, DOGE spending cuts'},
+  {flag:'🇨🇳',name:'China',score:72,level:'high',desc:'US-China tech war, property crisis, Taiwan tensions'},
+  {flag:'🇷🇺',name:'Russia',score:81,level:'critical',desc:'Ukraine war escalation, energy sanctions, nuclear posturing'},
+  {flag:'🇵🇰',name:'Pakistan',score:74,level:'high',desc:'Economic crisis, debt default risk, border tensions'},
+  {flag:'🇮🇱',name:'Israel',score:79,level:'critical',desc:'Gaza war, Iran threat, Hezbollah, regional destabilization'},
+  {flag:'🇮🇷',name:'Iran',score:76,level:'critical',desc:'Nuclear program, Red Sea attacks, proxy conflicts'},
+  {flag:'🇸🇦',name:'Saudi',score:48,level:'medium',desc:'OPEC+ decisions, Vision 2030, oil price management'},
+  {flag:'🇪🇺',name:'Europe',score:42,level:'medium',desc:'Energy crisis easing, ECB policy, Ukraine aid fatigue'},
+  {flag:'🇯🇵',name:'Japan',score:30,level:'low',desc:'BOJ rate normalization, Yen carry, tech alliance with India'},
+  {flag:'🇧🇷',name:'Brazil',score:35,level:'low',desc:'Commodity rival, Lula policies, minor India impact'},
+  {flag:'🇺🇦',name:'Ukraine',score:78,level:'critical',desc:'Active warzone, infra attacks, grain supply disruption'},
+  {flag:'🌐',name:'OPEC+',score:60,level:'medium',desc:'Oil supply management critical for India CAD'},
+];
+
+const GEO_EVENTS = [
+  {time:'Just now',title:'Trump posts on Truth Social: New 25% tariff on chip imports',desc:'Indian IT and semiconductor sector exposure being assessed by FIIs. Watch #Infosys #HCLTech',color:'var(--red)',impact:'CRITICAL',tags:['#Trump','#Tariffs','#IT']},
+  {time:'12m ago',title:'Powell: Fed in no hurry to cut rates — CPI sticky above 3%',desc:'Dollar strengthens. DXY at 104.82. FII selling in EM including India likely to continue.',color:'var(--red)',impact:'HIGH',tags:['#Fed','#RateHike','#FII']},
+  {time:'28m ago',title:'OPEC+ extends production cuts through Q2 2026',desc:'Brent crude up $1.2 to $83.4/bbl. India imports 85% oil — CAD pressure mounts.',color:'var(--orange)',impact:'HIGH',tags:['#OPEC','#Crude','#India']},
+  {time:'45m ago',title:'Russia strikes Kyiv energy infrastructure — crude spikes',desc:'Gold up $18/oz. Safe-haven buying. Risk-off sentiment across Asian markets.',color:'var(--red)',impact:'HIGH',tags:['#Russia','#Ukraine','#Crude']},
+  {time:'1h ago',title:'Israel-Hamas ceasefire talks collapse in Cairo',desc:'Middle East tensions resume. Strait of Hormuz risk elevated. Oil upside risk.',color:'var(--red)',impact:'HIGH',tags:['#Israel','#MiddleEast','#Oil']},
+  {time:'1h 22m',title:'China announces $1.4T stimulus — EM risk appetite improves',desc:'India may benefit from EM inflows. However, competition with China for FII money.',color:'var(--green)',impact:'MEDIUM',tags:['#China','#Stimulus','#EM']},
+  {time:'2h ago',title:'RBI Governor: Comfortable with inflation trajectory',desc:'Rate cut window may open in June 2026 MPC. BankNifty positive sentiment.',color:'var(--cyan)',impact:'MEDIUM',tags:['#RBI','#RateCut','#BankNifty']},
+  {time:'2h 45m',title:'India-US trade deal: Pharma exports get 15% duty relief',desc:'Pharma sector to benefit. Sun Pharma, Dr Reddy, Cipla watching closely.',color:'var(--green)',impact:'MEDIUM',tags:['#IndiaUSA','#Pharma','#Trade']},
+  {time:'3h ago',title:'Pakistan economy on edge — possible IMF bailout delay',desc:'Border alert raised. Defense stocks HAL, BEL may see institutional interest.',color:'var(--orange)',impact:'MEDIUM',tags:['#Pakistan','#Defense','#India']},
+  {time:'4h ago',title:'Gift Nifty: +87 pts indicating positive India open',desc:'Asian markets mixed. SGX positive on China stimulus. India likely gap-up open.',color:'var(--green)',impact:'LOW',tags:['#GiftNifty','#Markets']},
+];
+
+const GEO_ALERTS = [
+  {icon:'🚨',color:'var(--red)',title:'CRITICAL: Russia escalates — crude risk upside',desc:'Brent may test $90/bbl if Hormuz traffic disrupted. Sell OMCs, buy ONGC',time:'2 min ago'},
+  {icon:'⚡',color:'var(--red)',title:'BREAKING: Trump tariff 25% on chip imports',desc:'Indian IT cos with chip dependencies may face margin pressure. FII sell-off risk.',time:'8 min ago'},
+  {icon:'🔔',color:'var(--orange)',title:'Fed hawkishness extends — DXY above 105',desc:'FII outflow risk for India. RBI may need to intervene at 85.5 USDINR.',time:'35 min ago'},
+  {icon:'⚠️',color:'var(--orange)',title:'Pakistan tensions elevated — HAL, BEL watch',desc:'Defense allocation may see government push. PSU defense stocks to track.',time:'1h ago'},
+  {icon:'📊',color:'var(--cyan)',title:'MSCI rebalance: India weight up 0.4%',desc:'$1.8Bn passive inflows expected. Broad market support for coming weeks.',time:'2h ago'},
+  {icon:'✅',color:'var(--green)',title:'India-US pharma trade deal signed',desc:'Duty relief for pharmaceutical exports. Sun Pharma, Cipla, Dr Reddy benefit.',time:'3h ago'},
+];
+
+const SECTOR_DATA = [
+  {name:'Oil & Gas',pct:-3.2,reason:'Crude above $83'},
+  {name:'IT / Tech',pct:-1.8,reason:'Tariff + weak USD deal'},
+  {name:'Auto',pct:-0.9,reason:'Commodity cost rise'},
+  {name:'FMCG',pct:-0.4,reason:'Inflation pressure'},
+  {name:'Realty',pct:-0.3,reason:'Rate cut delay'},
+  {name:'Pharma',pct:+2.1,reason:'India-US trade deal'},
+  {name:'Defense',pct:+1.8,reason:'Geo-tensions elevated'},
+  {name:'Banking',pct:+1.2,reason:'RBI rate cut hopes'},
+  {name:'Infra',pct:+0.9,reason:'Budget capex push'},
+  {name:'Metal',pct:+0.5,reason:'China stimulus tailwind'},
+];
+
+let sentChart = null;
+
+function renderHeatMap() {
+  const grid = document.getElementById('heat-grid');
+  const riskClass = s => s>=80?'risk-crit':s>=65?'risk-high':s>=45?'risk-med':'risk-low';
+  const riskColor = s => s>=80?'var(--red)':s>=65?'var(--orange)':s>=45?'var(--yellow)':'var(--green)';
+  const riskLbl = s => s>=80?'CRITICAL':s>=65?'HIGH':s>=45?'MEDIUM':'LOW';
+
+  grid.innerHTML = COUNTRY_RISKS.map(c=>`
+    <div class="hc ${riskClass(c.score)}" onclick="showCountryDetail('${c.name}')">
+      <div class="hc-flag">${c.flag}</div>
+      <div class="hc-name">${c.name}</div>
+      <div class="hc-score" style="color:${riskColor(c.score)}">${Math.round(c.score)}</div>
+      <div class="hc-lbl" style="color:${riskColor(c.score)}">${riskLbl(c.score)}</div>
+      <div class="hc-desc">${c.desc}</div>
+    </div>`).join('');
+}
+
+function showCountryDetail(name) {
+  const c = COUNTRY_RISKS.find(r=>r.name===name);
+  if(!c) return;
+  window.GeoPulse.showToast(`${c.flag} ${c.name} Risk: ${Math.round(c.score)}/100`, c.desc);
+}
+
+function renderEventTimeline() {
+  const container = document.getElementById('event-timeline');
+  const impColors = {'CRITICAL':'var(--red)','HIGH':'var(--orange)','MEDIUM':'var(--yellow)','LOW':'var(--green)'};
+  container.innerHTML = GEO_EVENTS.map(ev=>`
+    <div class="gte">
+      <span class="gte-time">${ev.time}</span>
+      <div class="gte-dot" style="background:${ev.color}"></div>
+      <div class="gte-body">
+        <div class="gte-title">${ev.title}</div>
+        <div class="gte-desc">${ev.desc}</div>
+        <div class="gte-tags">${ev.tags.map(t=>`<span class="gte-tag">${t}</span>`).join('')}</div>
+      </div>
+      <span class="gte-imp" style="background:${impColors[ev.impact]||'var(--yellow)'}22;color:${impColors[ev.impact]||'var(--yellow)'};border:1px solid ${impColors[ev.impact]||'var(--yellow)'}44">${ev.impact}</span>
+    </div>`).join('');
+}
+
+function renderSectorImpact() {
+  const container = document.getElementById('sector-impact');
+  const maxAbs = Math.max(...SECTOR_DATA.map(s=>Math.abs(s.pct)));
+  container.innerHTML = SECTOR_DATA.map(s=>{
+    const pct50 = (Math.abs(s.pct)/maxAbs)*45;
+    const color = s.pct>0?'var(--green)':'var(--red)';
+    return `
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+      <span style="font-size:11px;color:var(--text);width:85px;flex-shrink:0">${s.name}</span>
+      <div class="sec-bar-wrap" style="flex:1">
+        <div class="sec-midline"></div>
+        ${s.pct>0?`<div class="sec-bar-pos" style="width:${pct50}%;background:rgba(0,230,118,.25);color:var(--green)">${s.pct>0?'+':''}${s.pct}%</div>`:
+        `<div class="sec-bar-neg" style="width:${pct50}%;background:rgba(255,23,68,.25);color:var(--red)">${s.pct}%</div>`}
+      </div>
+      <span style="font-size:9px;color:var(--text3);width:110px;flex-shrink:0">${s.reason}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderGeoAlerts() {
+  const container = document.getElementById('geo-alerts');
+  container.innerHTML = GEO_ALERTS.map(a=>`
+    <div class="geo-alert">
+      <div class="ga-icon" style="background:${a.color}22">${a.icon}</div>
+      <div class="ga-body">
+        <div class="ga-title" style="color:${a.color}">${a.title}</div>
+        <div class="ga-desc">${a.desc}</div>
+        <div class="ga-time">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function initSentimentChart() {
+  const ctx = document.getElementById('sentiment-chart');
+  if(!ctx) return;
+
+  // Generate 30 data points
+  const labels = Array.from({length:30},(_,i)=>{
+    const d = new Date();
+    d.setDate(d.getDate()-29+i);
+    return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  });
+  const sentData = labels.map((_,i)=>40+Math.sin(i/4)*15+Math.random()*15);
+  const niftyData = labels.map((_,i)=>22000+i*15+Math.sin(i/3)*200+(Math.random()-0.5)*300);
+
+  sentChart = new Chart(ctx,{
+    data:{
+      labels,
+      datasets:[
+        {type:'line',label:'Geo-Sentiment Score',data:sentData,borderColor:'var(--purple)',backgroundColor:'rgba(180,79,255,.1)',tension:0.4,pointRadius:0,yAxisID:'y'},
+        {type:'line',label:'Nifty50',data:niftyData,borderColor:'var(--cyan)',backgroundColor:'rgba(0,212,255,.05)',tension:0.4,pointRadius:0,yAxisID:'y2'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#6e8ab0',font:{size:9}}},
+        tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?`Sentiment: ${ctx.raw.toFixed(0)}`:`Nifty: ${ctx.raw.toFixed(0)}`}}
+      },
+      scales:{
+        x:{ticks:{color:'#6e8ab0',font:{size:8},maxTicksLimit:8,maxRotation:0},grid:{color:'rgba(26,48,96,.3)'},border:{color:'rgba(26,48,96,.5)'}},
+        y:{position:'left',ticks:{color:'#6e8ab0',font:{size:8}},grid:{color:'rgba(26,48,96,.2)'},title:{display:true,text:'Sentiment',color:'rgba(180,79,255,.7)',font:{size:8}}},
+        y2:{position:'right',ticks:{color:'rgba(0,212,255,.7)',font:{size:8}},grid:{display:false},title:{display:true,text:'Nifty',color:'rgba(0,212,255,.7)',font:{size:8}}},
+      },
+      animation:{duration:600}
+    }
+  });
+}
+
+const TICKER_ITEMS = [
+  {txt:'GEOPOLITICS: Russia escalation pushes crude above $83 — India CAD risk',type:'bearish'},
+  {txt:'TRUMP TARIFFS: 25% on chip imports — Indian IT cos watching',type:'bearish'},
+  {txt:'INDIA MACRO: Forex reserves $648Bn — RBI comfortable defending INR',type:'bullish'},
+  {txt:'CHINA STIMULUS: $1.4T announced — EM risk appetite improves for India',type:'bullish'},
+  {txt:'FED: Rate cut timeline shifts to June 2026 — Dollar stays strong',type:'neutral'},
+  {txt:'ISRAEL-GAZA: Ceasefire talks collapse — Middle East risk elevated',type:'bearish'},
+  {txt:'INDIA GDP: 6.8% FY25 — IMF upgrades India forecast, Nifty re-rating possible',type:'bullish'},
+];
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const GP = window.GeoPulse;
+  GP.init();
+  renderHeatMap();
+  renderEventTimeline();
+  renderSectorImpact();
+  renderGeoAlerts();
+  initSentimentChart();
+  GP.updateClock();
+  setInterval(GP.updateClock,1000);
+
+  setInterval(()=>{
+    GP.NiftyEngine.tick();
+    GP.BankNiftyEngine.tick();
+    GP.updateHeaderTickers();
+    // Animate global risk
+    const newRisk = 60+Math.sin(Date.now()/10000)*8+(Math.random()-0.5)*5;
+    document.getElementById('global-risk-idx').textContent = Math.round(newRisk);
+    document.getElementById('risk-ptr').style.left = Math.round(newRisk)+'%';
+  },2500);
+
+  // Add live event occasionally
+  let eventTick = 0;
+  setInterval(()=>{
+    eventTick++;
+    if(eventTick%4===0) {
+      const idx = Math.floor(Math.random()*GEO_EVENTS.length);
+      GEO_EVENTS.unshift({...GEO_EVENTS[idx],time:'Just now'});
+      GEO_EVENTS.splice(12,1);
+      renderEventTimeline();
+    }
+  },15000);
+
+  const inner = document.getElementById('ticker-inner');
+  if(inner) inner.innerHTML = [...TICKER_ITEMS,...TICKER_ITEMS].map(t=>
+    `<span class="tn" style="color:${t.type==='bullish'?'var(--green)':t.type==='bearish'?'var(--red)':'var(--text)'}">${t.txt}</span>`
+  ).join('');
+});
+</script>
+</body>
+</html>
