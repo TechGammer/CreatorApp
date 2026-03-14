@@ -306,9 +306,9 @@ function renderChain() {
 
   let html = '';
   chain.forEach(r => {
-    const itmC = r.isITMCall ? 'itm-c' : '';
-    const itmP = r.isITMPut ? 'itm-p' : '';
-    const atmCls = r.isATM ? 'atm' : '';
+    const itmC = r.isITMCall ? 'itm-call' : '';
+    const itmP = r.isITMPut ? 'itm-put' : '';
+    const atmCls = r.isATM ? 'atm-row' : '';
     const callChg = (Math.random()-0.4)*r.callOI*0.1;
     const putChg = (Math.random()-0.4)*r.putOI*0.1;
     const cChgColor = callChg>0?'var(--green)':'var(--red)';
@@ -316,15 +316,15 @@ function renderChain() {
 
     html += `<tr class="${atmCls}">
       <td class="${itmC}" style="color:${cChgColor}">${callChg>0?'+':''}${(callChg/1000).toFixed(0)}K</td>
-      <td class="${itmC} c-oi">${(r.callOI/1000).toFixed(0)}K</td>
+      <td class="${itmC} c-call">${(r.callOI/1000).toFixed(0)}K</td>
       <td class="${itmC}" style="color:var(--text2)">${(r.callVol/1000).toFixed(0)}K</td>
-      <td class="${itmC} c-iv">${r.callIV}%</td>
-      <td class="${itmC}" style="color:var(--green);font-weight:600">₹${r.callPrice.toFixed(1)}</td>
-      <td class="strike ${atmCls}">${r.isATM?'⭐ ':''}<span style="font-family:var(--mono)">${r.strike}</span>${r.isATM?` <span style="font-size:8px;color:var(--cyan)">ATM</span>`:''}</td>
-      <td class="${itmP}" style="color:var(--red);font-weight:600">₹${r.putPrice.toFixed(1)}</td>
-      <td class="${itmP} p-iv">${r.putIV}%</td>
+      <td class="${itmC} c-call">${r.callIV}%</td>
+      <td class="${itmC} c-call" style="font-weight:600">₹${r.callPrice.toFixed(1)}</td>
+      <td class="c-strike ${atmCls}" style="font-weight:700">${r.isATM?'⭐ ':''}<span style="font-family:var(--mono)">${r.strike}</span>${r.isATM?` <span style="font-size:8px;color:var(--cyan)">ATM</span>`:''}</td>
+      <td class="${itmP} c-put" style="font-weight:600">₹${r.putPrice.toFixed(1)}</td>
+      <td class="${itmP} c-put">${r.putIV}%</td>
       <td class="${itmP}" style="color:var(--text2)">${(r.putVol/1000).toFixed(0)}K</td>
-      <td class="${itmP} p-oi">${(r.putOI/1000).toFixed(0)}K</td>
+      <td class="${itmP} c-put">${(r.putOI/1000).toFixed(0)}K</td>
       <td class="${itmP}" style="color:${pChgColor}">${putChg>0?'+':''}${(putChg/1000).toFixed(0)}K</td>
     </tr>`;
   });

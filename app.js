@@ -1979,3 +1979,182 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('wiz-step-1')?.addEventListener('click',()=>renderWizStep(1));
   document.getElementById('wiz-step-2')?.addEventListener('click',()=>wizState.dir&&renderWizStep(2));
 });
+
+/* ═══════════════════════════════════════════════════════
+   PATCH: Fix 20 missing connectors
+   ═══════════════════════════════════════════════════════ */
+
+/* FIX 1-3: Patch old updateHeaderTickers — remove dead element refs */
+updateHeaderTickers = function(){
+  const n=NiftyEngine.current, nc=NiftyEngine.getChange(), ncp=NiftyEngine.getChangePct();
+  const bn=BankNiftyEngine.current, bnc=BankNiftyEngine.getChange(), bncp=BankNiftyEngine.getChangePct();
+  const sign=v=>v>=0?'+':'', cls=v=>v>=0?'up':'dn', arr=v=>v>=0?'▲':'▼';
+  const $=id=>document.getElementById(id);
+  $('nifty-val')&&($('nifty-val').textContent=n.toFixed(2));
+  $('nifty-chg')&&($('nifty-chg').innerHTML=`<span class="${cls(nc)}">${arr(nc)} ${sign(nc)}${nc.toFixed(2)} (${sign(ncp)}${ncp.toFixed(2)}%)</span>`);
+  $('bn-val')&&($('bn-val').textContent=bn.toFixed(2));
+  $('bn-chg')&&($('bn-chg').innerHTML=`<span class="${cls(bnc)}">${arr(bnc)} ${sign(bnc)}${bnc.toFixed(2)} (${sign(bncp)}${bncp.toFixed(2)}%)</span>`);
+  // hero panel (index.html new layout)
+  if($('hero-price')&&typeof IndexState!=='undefined'){updateHero();}
+};
+window.GeoPulse.updateHeaderTickers = updateHeaderTickers;
+
+/* FIX 4: Patch old updateSignals — proxy to new one if available */
+const _oldUpdateSignals = updateSignals;
+updateSignals = function(){
+  if(typeof updateSignalsNew==='function') updateSignalsNew();
+  else _oldUpdateSignals();
+};
+window.GeoPulse.updateSignals = updateSignals;
+
+/* FIX 5: Patch renderSignalHistory — works with both #sh-row and #sig-history */
+renderSignalHistory = function(){
+  const el=document.getElementById('sh-row')||document.getElementById('sig-history');
+  if(!el) return;
+  if(!SignalEngine.history.length){
+    el.innerHTML='<div style="font-size:10px;color:var(--text3);padding:4px 0">Waiting for confluence...</div>';
+    return;
+  }
+  el.innerHTML=SignalEngine.history.slice(0,6).map(h=>{
+    const cls=h.signal==='BUY'?'sh-buy':h.signal==='SELL'?'sh-sell':'sh-hold';
+    return `<div class="sh-item ${cls}">${h.signal==='BUY'?'▲':'▼'} ${h.signal} ${h.spot} · ${h.time} · ${h.strength}/10</div>`;
+  }).join('');
+};
+window.GeoPulse.renderSignalHistory = renderSignalHistory;
+
+/* FIX 6: Patch addNewPost — try #feed-list first, fallback #feed-posts */
+addNewPost = function(){
+  const post=FeedEngine.addRandomPost();
+  const container=document.getElementById('feed-list')||document.getElementById('feed-posts');
+  if(container){
+    if(typeof prependNewPost==='function'){prependNewPost(post);return;}
+    const div=document.createElement('div');
+    div.innerHTML=renderPost(post);
+    const el=div.firstElementChild;
+    container.insertBefore(el,container.firstChild);
+    if(container.children.length>60) container.lastChild?.remove();
+  }
+  if(typeof updateSentimentPanel==='function') updateSentimentPanel();
+  if(post.impact==='high'&&Math.random()<0.3) showProToast(`${post.influencer.flag} ${post.influencer.name}`,post.txt.substring(0,100)+'…',post.sent==='bullish'?'bull':'bear');
+};
+window.GeoPulse.addNewPost = addNewPost;
+
+/* FIX 7: Patch renderFeed — works with both old and new container IDs */
+renderFeed = function(container){
+  const el=container||document.getElementById('feed-list')||document.getElementById('feed-posts');
+  if(!el) return;
+  const posts=FeedEngine.getFiltered();
+  el.innerHTML=posts.map(renderPost).join('');
+};
+window.GeoPulse.renderFeed = renderFeed;
+
+/* FIX 8: showToast backward-compat alias for sub-pages */
+window.showToast = showProToast;
+window.GeoPulse.showToast = showProToast;
+
+/* FIX 9: sub-page ticker — populate #ticker-inner if present */
+function populateSubPageTicker(){
+  const inner=document.getElementById('ticker-inner'); if(!inner) return;
+  const items=TICKER_ITEMS||[];
+  inner.innerHTML=[...items,...items].map(t=>
+    `<span class="tn" style="color:${t.type==='bullish'?'var(--green)':t.type==='bearish'?'var(--red)':'var(--text)'}">${t.txt}</span>`
+  ).join('');
+}
+
+/* FIX 10: prevent double-init */
+let _gpInitDone=false;
+const _origGpInit=window.GeoPulse.init.bind(window.GeoPulse);
+window.GeoPulse.init=function(){
+  if(_gpInitDone) return;
+  _gpInitDone=true;
+  _origGpInit();
+  setTimeout(populateSubPageTicker,100);
+};
+
+/* FIX 11: updateCompare selects — re-populate each open */
+const _origUpdateCompare=updateCompare;
+updateCompare=function(){
+  // Re-populate selects every time (remove old options first)
+  ['cmp-a','cmp-b'].forEach((id,i)=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    if(!sel.options.length||sel.options[0].value===''){
+      sel.innerHTML='';
+      INDICES.forEach(idx=>{const o=document.createElement('option');o.value=idx.id;o.textContent=idx.name;sel.appendChild(o);});
+      sel.value=i===0?'nifty50':'banknifty';
+    }
+  });
+  _origUpdateCompare();
+};
+window.updateCompare=updateCompare;
+
+/* FIX 12: closePaperTrade — re-render both mini and full views */
+const _origClosePT=closePaperTrade;
+closePaperTrade=function(id){
+  PaperTradeEngine.close(id);
+  renderPaperMini();
+  if(document.getElementById('view-paper')?.style.display!=='none') renderPaperFull();
+};
+window.closePaperTrade=closePaperTrade;
+
+/* FIX 13: updateSignalsNew guard — bail if IndexState not initialized */
+const _origUpdateSignalsNew=updateSignalsNew;
+updateSignalsNew=function(){
+  if(typeof IndexState==='undefined'||!IndexState.states||!IndexState.states['nifty50']) return;
+  _origUpdateSignalsNew();
+};
+
+/* FIX 14: openInfluencerModal alias for influencers.html openModal */
+if(typeof window.openInfluencerModal==='undefined'){
+  window.openInfluencerModal=openInfluencerModal;
+}
+/* Let influencers.html openModal also trigger our app.js version */
+window.GeoPulse.openInfluencerModal=openInfluencerModal;
+
+/* FIX 15: renderFeed on index.html → use renderNewFeed */
+window.GeoPulse.renderNewFeed=renderNewFeed;
+
+/* FIX 16: Patch old updateSentimentPanel — safe null checks already exist but update mood meter too */
+const _origUpdateSent=updateSentimentPanel;
+updateSentimentPanel=function(){
+  _origUpdateSent();
+  if(typeof updateMoodMeter==='function') updateMoodMeter();
+};
+window.GeoPulse.updateSentimentPanel=updateSentimentPanel;
+
+/* FIX 17: old tick — skip heavy renders when on index.html (proTick handles them) */
+const _origTick=tick;
+tick=function(){
+  if(document.getElementById('chart')) return; // index.html handled by proTick
+  _origTick();
+};
+window.GeoPulse.tick=tick;
+
+/* FIX 18: Connect sub-page ticker on DOMContentLoaded */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(document.getElementById('chart')) return; // index.html handles own init
+  populateSubPageTicker();
+  // Also render ticker-track if it somehow exists
+  if(typeof renderTicker==='function') renderTicker();
+});
+
+/* FIX 19: options.html — use IndexState spot price if available */
+if(typeof renderChain!=='undefined'){
+  const _origRC=window.renderChain;
+  window.renderChain=function(){
+    const GP=window.GeoPulse;
+    if(typeof IndexState!=='undefined'&&IndexState.states?.nifty50){
+      GP.NiftyEngine.current=IndexState.states.nifty50.current;
+    }
+    _origRC&&_origRC();
+  };
+}
+
+/* FIX 20: Export everything needed by sub-pages */
+Object.assign(window.GeoPulse,{
+  INFLUENCERS, POST_POOL, fillTemplate, TechEngine, SignalEngine,
+  AIEngine, GeoEngine, FeedEngine, NiftyEngine, BankNiftyEngine, OptionsEngine,
+  updateClock, tick, addNewPost, renderFeed, updateHeaderTickers,
+  updateSignals, updateSentimentPanel, renderSignalHistory,
+  showToast:showProToast, showProToast,
+});
+
