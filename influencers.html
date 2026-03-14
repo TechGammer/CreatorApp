@@ -208,6 +208,7 @@
   </div>
 </div>
 
+<script src="livedata.js"></script>
 <script>
 /* ── ALL 50 INFLUENCERS DATA (self-contained) ──────── */
 const INF_DATA = [
@@ -522,19 +523,81 @@ function initTicker() {
   inner.innerHTML = items.map(t => `<span class="tn" style="color:${t.type==='bullish'?'#00e676':t.type==='bearish'?'#ff1744':'#ccdaf5'}">${t.txt}</span>`).join('');
 }
 
+/* ── LIVEAPI HOOKS ──────────────────────────────────── */
+// Called by livedata.js when real prices arrive
+window._liveUpdatePrices = function(prices) {
+  const n  = prices.nifty50;
+  const bn = prices.banknifty;
+  if (!n && !bn) return;
+  if (n)  { niftyPrice = n.price; niftyBase  = n.prev || niftyBase; }
+  if (bn) { bnPrice    = bn.price; bnBase     = bn.prev || bnBase; }
+  updatePrices(); // re-render header with real values
+  // Show "LIVE" label
+  const badge = document.querySelector('.mkt-badge');
+  if (badge) { badge.innerHTML = '<span class="pulse-dot"></span>NSE LIVE'; badge.style.color = ''; }
+};
+
+// Called by livedata.js when real news arrives
+window._liveUpdateNews = function(newsItems) {
+  if (!newsItems || !newsItems.length) return;
+  const feed = document.getElementById('live-feed');
+  if (!feed) return;
+  feed.style.display = 'block';
+
+  newsItems.slice(0, 8).forEach(function(item) {
+    const sent    = item.sentiment || 'neutral';
+    const sentCls = sent === 'bullish' ? 'bull' : sent === 'bearish' ? 'bear' : 'neut';
+    // Find matching influencer
+    const infId = item.influencerId;
+    const inf   = infId ? INF_DATA.find(i => i.id === infId) : null;
+    const avBg  = inf ? inf.avatar : '#1565c0';
+    const avInit= inf ? inf.init   : (item.source || 'NW').slice(0,2).toUpperCase();
+    const name  = inf ? inf.flag + ' ' + inf.name : '📰 ' + (item.source || 'Market News');
+    const timeStr = item.time ? item.time.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'}) : '--:--';
+
+    const div = document.createElement('div');
+    div.className = 'lf-item lf-new';
+    div.innerHTML = `
+      <div class="lf-av" style="background:${avBg}">${avInit}</div>
+      <div class="lf-body">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="lf-name">${name}</span>
+          <span class="lf-sent ${sentCls}">${sent.toUpperCase()}</span>
+          <span style="font-size:9px;color:#2d4060;margin-left:auto">${timeStr}</span>
+        </div>
+        <div class="lf-txt">${item.title || ''}</div>
+      </div>`;
+    if (item.url) div.style.cursor = 'pointer', div.onclick = () => window.open(item.url, '_blank');
+    feed.insertBefore(div, feed.firstChild);
+  });
+
+  while (feed.children.length > 12) feed.lastChild.remove();
+
+  postCount += newsItems.length;
+  const pcEl = document.getElementById('live-posts-cnt');
+  if (pcEl) pcEl.textContent = postCount;
+
+  // Update ticker with real headlines
+  const inner = document.getElementById('ticker-inner');
+  if (inner) {
+    const headlines = newsItems.slice(0, 14);
+    inner.innerHTML = [...headlines, ...headlines].map(n =>
+      `<span class="tn" style="color:${n.sentiment==='bullish'?'#00e676':n.sentiment==='bearish'?'#ff1744':'#ccdaf5'}">${n.title}</span>`
+    ).join('');
+  }
+};
+
 /* ── BOOTSTRAP ──────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
   renderInfluencers();
   updateClock();
   initTicker();
   setInterval(updateClock, 1000);
-  setInterval(updatePrices, 2500);
-  setInterval(addLivePost, 9000 + Math.random() * 6000);
+  setInterval(updatePrices, 2500);          // simulation fallback
+  setInterval(addLivePost, 10000);           // simulated posts fallback
 
-  // Also try to hook into app.js if loaded
-  if (window.GeoPulse && window.GeoPulse.init) {
-    try { window.GeoPulse.init(); } catch(e) {}
-  }
+  // LiveAPI starts automatically from livedata.js DOMContentLoaded
+  // It will call _liveUpdatePrices and _liveUpdateNews when data arrives
 });
 </script>
 </body>

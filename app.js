@@ -2158,3 +2158,98 @@ Object.assign(window.GeoPulse,{
   showToast:showProToast, showProToast,
 });
 
+/* ═══════════════════════════════════════════════════════
+   LIVEAPI INTEGRATION — sync real prices into app engines
+   ═══════════════════════════════════════════════════════ */
+(function wireLiveAPI() {
+  // Wait briefly for livedata.js to define window.LiveAPI
+  function tryWire() {
+    const LA = window.LiveAPI;
+    if (!LA) return;
+
+    /* Update engine states when real prices arrive */
+    LA.on('prices', function(prices) {
+      const n  = prices.nifty50;
+      const bn = prices.banknifty;
+      if (n) {
+        NiftyEngine.current = n.price;
+        NiftyEngine.prev    = n.prev || NiftyEngine.prev;
+        NiftyEngine.open    = n.open || NiftyEngine.open;
+      }
+      if (bn) {
+        BankNiftyEngine.current = bn.price;
+        BankNiftyEngine.prev    = bn.prev || BankNiftyEngine.prev;
+      }
+      /* Update IndexState for new multi-index engine */
+      if (typeof IndexState !== 'undefined' && IndexState.states) {
+        if (n  && IndexState.states.nifty50)    IndexState.states.nifty50.current    = n.price;
+        if (bn && IndexState.states.banknifty)  IndexState.states.banknifty.current  = bn.price;
+        const sensex = prices.sensex;
+        if (sensex && IndexState.states.sensex) IndexState.states.sensex.current     = sensex.price;
+      }
+      /* Refresh all live UI panels */
+      if (typeof updateSignalsNew === 'function') { try { updateSignalsNew(); } catch(_) {} }
+      if (typeof updateHero       === 'function') { try { updateHero();       } catch(_) {} }
+      if (typeof renderScannerMini=== 'function') { try { renderScannerMini();} catch(_) {} }
+
+      /* Update India VIX display */
+      const vix = prices.indiavix;
+      if (vix) {
+        const el = document.getElementById('sig-vix') || document.getElementById('vix-val');
+        if (el) el.textContent = vix.price.toFixed(2);
+      }
+      /* Update gold/crude in any element */
+      if (prices.gold) {
+        const el = document.getElementById('gold-val');
+        if (el) el.textContent = '$' + prices.gold.price.toFixed(1);
+      }
+      if (prices.crude) {
+        const el = document.getElementById('crude-val');
+        if (el) el.textContent = '$' + prices.crude.price.toFixed(1);
+      }
+    });
+
+    /* Inject live news into feed */
+    LA.on('news', function(news) {
+      if (!news || !news.length) return;
+      news.slice(0, 5).forEach(function(item) {
+        if (!item.title) return;
+        const sent = item.sentiment || 'neutral';
+        const inf  = { name: item.source || 'Market News', flag:'📰', avatar:'#1565c0', init:'NW' };
+        FeedEngine.posts.unshift({
+          id:10000 + Math.floor(Math.random()*9000),
+          txt: item.title + (item.description ? ' — ' + item.description.slice(0,100) + '…' : ''),
+          influencer: inf,
+          time: item.time || new Date(),
+          sent: sent,
+          impact:'high',
+          source:'RSS',
+          liveNews:true,
+          url: item.url || '',
+        });
+      });
+      if (FeedEngine.posts.length > 80) FeedEngine.posts.length = 80;
+      AIEngine.updateSentiment(FeedEngine.posts);
+      if (typeof renderNewFeed === 'function') { try { renderNewFeed(); } catch(_) {} }
+      if (typeof updateSentimentPanel === 'function') { try { updateSentimentPanel(); } catch(_) {} }
+    });
+
+    /* Crypto sentiment */
+    LA.on('crypto', function(crypto) {
+      if (!crypto) return;
+      const btc = crypto.btc;
+      if (btc && btc.changePct != null) {
+        /* BTC direction used as global risk-on/off signal */
+        GeoEngine.globalRisk = Math.max(20, Math.min(90,
+          GeoEngine.globalRisk + (btc.changePct < -3 ? 5 : btc.changePct > 3 ? -3 : 0)
+        ));
+      }
+    });
+  }
+  /* Retry wiring up to 10 times with 300ms gaps */
+  let tries = 0;
+  const t = setInterval(function() {
+    if (window.LiveAPI || ++tries > 10) { clearInterval(t); tryWire(); }
+  }, 300);
+})();
+
