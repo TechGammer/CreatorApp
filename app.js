@@ -2167,6 +2167,109 @@ Object.assign(window.GeoPulse,{
     const LA = window.LiveAPI;
     if (!LA) return;
 
+    /* ── CHART OHLCV LOADER ──────────────────────────── */
+    // Map app index IDs → LiveAPI IDs
+    const CHART_ID_MAP = {
+      nifty50:'nifty50', banknifty:'banknifty', sensex:'sensex',
+      niftyit:'niftyit', niftyauto:'niftyauto', niftyphrm:'niftyphrm',
+      niftymetal:'niftymetal',
+    };
+    const _chartLoaded = {};  // track which indices have real data
+
+    function _toChartBars(rawBars) {
+      // rawBars from LiveAPI.getChart: [{time(unix s), open, high, low, close, volume}]
+      // Deduplicate timestamps (LightweightCharts requires strictly increasing)
+      const seen = new Set();
+      return rawBars
+        .filter(b => b.close != null && b.open != null && b.close > 0)
+        .map(b => ({
+          time  : b.time,
+          open  : +b.open.toFixed(2),
+          high  : +b.high.toFixed(2),
+          low   : +b.low.toFixed(2),
+          close : +b.close.toFixed(2),
+          volume: b.volume || 0,
+        }))
+        .filter(b => { if (seen.has(b.time)) return false; seen.add(b.time); return true; })
+        .sort((a, b) => a.time - b.time);
+    }
+
+    async function loadChartForIndex(indexId) {
+      const liveId = CHART_ID_MAP[indexId] || indexId;
+      if (!LA.SYM[liveId]) return;                        // not supported
+      try {
+        const raw  = await LA.getChart(liveId, '1m', '1d');
+        const bars = _toChartBars(raw);
+        if (bars.length < 3) return;
+
+        // Determine if this is the currently displayed index
+        const isCurrent = !IndexState || IndexState.current === indexId || indexId === 'nifty50';
+
+        // Store into IndexState
+        if (typeof IndexState !== 'undefined' && IndexState.states && IndexState.states[indexId]) {
+          IndexState.states[indexId].history = bars;
+          IndexState.states[indexId].current = bars[bars.length - 1].close;
+          IndexState.states[indexId].high    = Math.max(...bars.map(b => b.high));
+          IndexState.states[indexId].low     = Math.min(...bars.map(b => b.low));
+          IndexState.states[indexId].open    = bars[0].open;
+        }
+
+        // Always update NiftyEngine (it drives the chart series)
+        if (indexId === 'nifty50' || isCurrent) {
+          NiftyEngine.priceHistory = bars;
+          NiftyEngine.current      = bars[bars.length - 1].close;
+          NiftyEngine.high         = Math.max(...bars.map(b => b.high));
+          NiftyEngine.low          = Math.min(...bars.map(b => b.low));
+          NiftyEngine.open         = bars[0].open;
+        }
+
+        // Push to LightweightCharts if visible
+        if (NiftyEngine.seriesCandle && isCurrent) {
+          NiftyEngine.seriesCandle.setData(bars);
+          NiftyEngine.seriesVolume && NiftyEngine.seriesVolume.setData(
+            bars.map(b => ({
+              time : b.time,
+              value: b.volume,
+              color: b.close >= b.open ? 'rgba(0,230,118,0.15)' : 'rgba(255,23,68,0.15)',
+            }))
+          );
+          NiftyEngine.chart && NiftyEngine.chart.timeScale().fitContent();
+        }
+
+        _chartLoaded[indexId] = true;
+        // Update chart label
+        const lbl = document.getElementById('chart-label');
+        if (lbl && isCurrent) {
+          const name = (typeof INDICES !== 'undefined' && INDICES.find(i => i.id === indexId)?.name) || indexId.toUpperCase();
+          lbl.textContent = name + ' · 1MIN · LIVE OHLCV ●';
+          lbl.style.color = '#00e676';
+        }
+      } catch (err) {
+        console.warn('[LiveAPI] Chart load failed for', indexId, err.message);
+      }
+    }
+
+    // Load chart for active index after a short delay (chart must exist)
+    setTimeout(function() {
+      const activeId = (typeof IndexState !== 'undefined' && IndexState.current) || 'nifty50';
+      loadChartForIndex(activeId);
+    }, 1500);
+
+    // Refresh chart every 2 minutes to pick up new candles
+    setInterval(function() {
+      const activeId = (typeof IndexState !== 'undefined' && IndexState.current) || 'nifty50';
+      loadChartForIndex(activeId);
+    }, 120000);
+
+    // When user switches index, load real data for that index too
+    const _origSwitch = (typeof switchIndex === 'function') ? switchIndex : null;
+    if (_origSwitch) {
+      window.switchIndex = function(id) {
+        _origSwitch(id);
+        if (!_chartLoaded[id]) loadChartForIndex(id);
+      };
+    }
+
     /* Update engine states when real prices arrive */
     LA.on('prices', function(prices) {
       const n  = prices.nifty50;
@@ -2175,6 +2278,22 @@ Object.assign(window.GeoPulse,{
         NiftyEngine.current = n.price;
         NiftyEngine.prev    = n.prev || NiftyEngine.prev;
         NiftyEngine.open    = n.open || NiftyEngine.open;
+        // Append live tick to chart (keeps last bar up-to-date between full reloads)
+        if (NiftyEngine.seriesCandle) {
+          const nowT = Math.floor(Date.now() / 1000);
+          const last = NiftyEngine.priceHistory[NiftyEngine.priceHistory.length - 1];
+          if (last) {
+            const bar = {
+              time : Math.max(nowT, last.time),
+              open : last.open,
+              high : Math.max(last.high, n.price),
+              low  : Math.min(last.low,  n.price),
+              close: +n.price.toFixed(2),
+              volume: last.volume,
+            };
+            try { NiftyEngine.seriesCandle.update(bar); } catch(_) {}
+          }
+        }
       }
       if (bn) {
         BankNiftyEngine.current = bn.price;
