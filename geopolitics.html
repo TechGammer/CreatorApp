@@ -474,20 +474,20 @@ const TICKER_ITEMS = [
 ];
 
 window.addEventListener('DOMContentLoaded',()=>{
-  const GP = window.GeoPulse;
-  GP.init();
+  const GP = window.GeoPulse || {};
+  if(GP.init) GP.init();
   renderHeatMap();
   renderEventTimeline();
   renderSectorImpact();
   renderGeoAlerts();
   initSentimentChart();
-  GP.updateClock();
-  setInterval(GP.updateClock,1000);
+  if(GP.updateClock) GP.updateClock();
+  setInterval(()=>{ if(GP.updateClock) GP.updateClock(); },1000);
 
   setInterval(()=>{
-    GP.NiftyEngine.tick();
-    GP.BankNiftyEngine.tick();
-    GP.updateHeaderTickers();
+    if(GP.NiftyEngine) GP.NiftyEngine.tick();
+    if(GP.BankNiftyEngine) GP.BankNiftyEngine.tick();
+    if(GP.updateHeaderTickers) GP.updateHeaderTickers();
     // Animate global risk
     const newRisk = 60+Math.sin(Date.now()/10000)*8+(Math.random()-0.5)*5;
     document.getElementById('global-risk-idx').textContent = Math.round(newRisk);

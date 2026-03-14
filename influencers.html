@@ -35,6 +35,14 @@
     .modal-post{padding:10px;background:var(--bg-secondary);border-radius:5px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--text)}
     .modal-post-meta{font-size:10px;color:var(--text2);margin-top:5px;display:flex;gap:10px}
     .cat-filter-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg-secondary);border-bottom:1px solid var(--border-dim)}
+    /* Ensure grid is always visible */
+    html,body{height:100%;overflow:hidden}
+    #app{display:flex;flex-direction:column;height:100vh}
+    #pg-inf{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+    .inf-grid{flex:1;overflow-y:auto!important;min-height:200px}
+    /* Live price flash animation */
+    @keyframes priceFlash{0%{opacity:1}50%{opacity:0.5;transform:scale(1.05)}100%{opacity:1}}
+    .price-flash{animation:priceFlash 0.4s ease}
     .stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border-dim);margin-bottom:1px}
     .ss-cell{background:var(--bg-card);padding:8px 12px;text-align:center}
     .ss-v{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text)}
@@ -149,8 +157,12 @@ function getFollowerNum(f) {
 }
 
 function renderInfluencers() {
-  const GP = window.GeoPulse;
-  let list = [...GP.INFLUENCERS];
+  // Use global INFLUENCERS directly — no dependency on window.GeoPulse
+  const list_src = (typeof INFLUENCERS !== 'undefined') ? INFLUENCERS
+                 : (window.GeoPulse && window.GeoPulse.INFLUENCERS) ? window.GeoPulse.INFLUENCERS
+                 : [];
+  let list = [...list_src];
+  if(!list.length){ setTimeout(renderInfluencers, 200); return; } // retry if not loaded yet
   if(currentCat!=='all') list=list.filter(i=>i.cat===currentCat);
   if(searchQuery) list=list.filter(i=>i.name.toLowerCase().includes(searchQuery)||i.role.toLowerCase().includes(searchQuery)||i.handle.toLowerCase().includes(searchQuery));
   if(currentSort==='impact') list.sort((a,b)=>b.impact-a.impact);
@@ -221,17 +233,19 @@ function filterInfluencers() {
 }
 
 function openModal(id) {
-  const GP = window.GeoPulse;
-  const inf = GP.INFLUENCERS.find(i=>i.id===id);
+  const GP = window.GeoPulse || {};
+  const src = (typeof INFLUENCERS !== 'undefined') ? INFLUENCERS : (GP.INFLUENCERS || []);
+  const inf = src.find(i=>i.id===id);
   if(!inf) return;
   const plat = {x:'𝕏 Twitter/X', truth:'Truth Social', li:'LinkedIn'};
   const pltHtml = inf.plt.map(p=>`<span class="plt-badge ${p==='x'?'x':p==='truth'?'t':'li'}" style="padding:3px 8px;font-size:10px">${plat[p]||'𝕏'}</span>`).join(' ');
   const impactColor = inf.impact>=85?'var(--red)':inf.impact>=70?'var(--orange)':'var(--text2)';
 
   // Generate sample posts
+  const postPool = (typeof POST_POOL !== 'undefined') ? POST_POOL : (GP.POST_POOL || [{txt:'Market update incoming…',sent:'neutral'}]);
   const posts = [];
   for(let i=0;i<4;i++) {
-    const tmpl = GP.POST_POOL[Math.floor(Math.random()*GP.POST_POOL.length)];
+    const tmpl = postPool[Math.floor(Math.random()*postPool.length)];
     let txt = tmpl.txt;
     // Simple fill
     txt = txt.replace(/{[\w]+}/g, ()=>['bullish','bearish','key level','strong signal','consolidation','breakout'][Math.floor(Math.random()*6)]);
@@ -292,17 +306,23 @@ const TICKER_ITEMS = [
 ];
 
 window.addEventListener('DOMContentLoaded',()=>{
-  const GP = window.GeoPulse;
-  GP.init();
+  const GP = window.GeoPulse || {};
+  if(GP.init) GP.init();
   renderInfluencers();
-  GP.updateClock();
-  setInterval(GP.updateClock,1000);
+  if(GP.updateClock) GP.updateClock();
+  setInterval(()=>{ if(GP.updateClock) GP.updateClock(); },1000);
 
-  // Update tickers
+  // Update tickers with live flash
   setInterval(()=>{
-    GP.NiftyEngine.tick();
-    GP.BankNiftyEngine.tick();
-    GP.updateHeaderTickers();
+    if(GP.NiftyEngine) GP.NiftyEngine.tick();
+    if(GP.BankNiftyEngine) GP.BankNiftyEngine.tick();
+    if(GP.updateHeaderTickers) GP.updateHeaderTickers();
+    // Flash price elements
+    document.querySelectorAll('.hticker-val').forEach(el=>{
+      el.style.transition='color 0.3s';
+      el.style.color='var(--cyan)';
+      setTimeout(()=>el.style.color='',400);
+    });
   },2000);
 
   // Ticker

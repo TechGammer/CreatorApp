@@ -423,16 +423,16 @@ const TICKER_ITEMS = [
 ];
 
 window.addEventListener('DOMContentLoaded',()=>{
-  const GP = window.GeoPulse;
-  GP.init();
+  const GP = window.GeoPulse || {};
+  if(GP.init) GP.init();
   renderChain();
-  GP.updateClock();
-  setInterval(GP.updateClock,1000);
+  if(GP.updateClock) GP.updateClock();
+  setInterval(()=>{ if(GP.updateClock) GP.updateClock(); },1000);
 
   setInterval(()=>{
-    GP.NiftyEngine.tick();
-    GP.BankNiftyEngine.tick();
-    GP.updateHeaderTickers();
+    if(GP.NiftyEngine) GP.NiftyEngine.tick();
+    if(GP.BankNiftyEngine) GP.BankNiftyEngine.tick();
+    if(GP.updateHeaderTickers) GP.updateHeaderTickers();
     renderChain();
   }, 3000);
 
