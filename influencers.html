@@ -8,45 +8,102 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    .inf-detail-modal{
-      display:none;position:fixed;inset:0;background:rgba(2,8,16,.85);z-index:9999;
-      align-items:center;justify-content:center;
-    }
-    .inf-detail-modal.open{display:flex}
-    .modal-box{
-      background:var(--bg-card);border:1px solid var(--border-glow);border-radius:10px;
-      width:520px;max-height:80vh;overflow-y:auto;padding:20px;position:relative;
-    }
-    .modal-close{
-      position:absolute;top:14px;right:14px;background:transparent;border:none;
-      color:var(--text2);font-size:18px;cursor:pointer;
-    }
-    .modal-close:hover{color:var(--text)}
-    .modal-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-    .modal-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0}
-    .modal-name{font-size:18px;font-weight:800;color:var(--text)}
-    .modal-role{font-size:12px;color:var(--text2);margin-top:2px}
-    .modal-handle{font-size:11px;color:var(--cyan);margin-top:2px}
-    .modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
-    .ms-cell{background:var(--bg-secondary);border-radius:5px;padding:8px;text-align:center}
-    .ms-v{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text)}
-    .ms-l{font-size:9px;text-transform:uppercase;color:var(--text3);letter-spacing:.3px}
-    .modal-posts{margin-top:12px}
-    .modal-post{padding:10px;background:var(--bg-secondary);border-radius:5px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--text)}
-    .modal-post-meta{font-size:10px;color:var(--text2);margin-top:5px;display:flex;gap:10px}
-    .cat-filter-bar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg-secondary);border-bottom:1px solid var(--border-dim)}
-    /* Ensure grid is always visible */
-    html,body{height:100%;overflow:hidden}
-    #app{display:flex;flex-direction:column;height:100vh}
+    html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#04080f;font-family:'Inter',sans-serif;color:#ccdaf5}
+    #app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+    /* Header */
+    #header{height:52px;background:rgba(6,12,24,0.97);border-bottom:1px solid rgba(30,60,120,.5);display:flex;align-items:center;padding:0 14px;gap:12px;flex-shrink:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:#ccdaf5}
+    .logo-icon{font-size:22px}
+    .logo-name{font-size:14px;font-weight:800;background:linear-gradient(90deg,#00e5ff,#c77dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hticker{display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid rgba(30,60,120,.4)}
+    .hticker-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6a85b0}
+    .hticker-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#ccdaf5}
+    .hticker-chg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
+    .hticker-chg.up{color:#00e676}.hticker-chg.dn{color:#ff1744}
+    .mkt-badge{padding:3px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:5px}
+    .mkt-open{background:rgba(0,230,118,.1);color:#00e676;border:1px solid rgba(0,230,118,.3)}
+    .pulse-dot{width:6px;height:6px;border-radius:50%;background:#00e676;animation:pulse 1.4s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+    .clock{font-family:'JetBrains Mono',monospace;font-size:11px;color:#6a85b0;margin-left:auto}
+    /* Navbar */
+    #navbar{display:flex;gap:2px;padding:0 14px;background:rgba(8,15,30,.95);border-bottom:1px solid rgba(30,60,120,.5);flex-shrink:0}
+    .nav-btn{display:flex;align-items:center;gap:5px;padding:9px 14px;font-size:11px;font-weight:600;color:#6a85b0;text-decoration:none;border-bottom:2px solid transparent;transition:all .2s}
+    .nav-btn:hover{color:#ccdaf5}.nav-btn.active{color:#00e5ff;border-bottom-color:#00e5ff}
+    .nav-cnt{background:rgba(0,229,255,.15);color:#00e5ff;padding:1px 5px;border-radius:10px;font-size:9px}
+    /* Page */
     #pg-inf{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
-    .inf-grid{flex:1;overflow-y:auto!important;min-height:200px}
-    /* Live price flash animation */
-    @keyframes priceFlash{0%{opacity:1}50%{opacity:0.5;transform:scale(1.05)}100%{opacity:1}}
-    .price-flash{animation:priceFlash 0.4s ease}
-    .stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border-dim);margin-bottom:1px}
-    .ss-cell{background:var(--bg-card);padding:8px 12px;text-align:center}
-    .ss-v{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text)}
-    .ss-l{font-size:9px;text-transform:uppercase;color:var(--text3);letter-spacing:.4px}
+    /* Page header */
+    .page-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(8,15,30,.9);border-bottom:1px solid rgba(30,60,120,.3);flex-shrink:0;gap:10px}
+    .page-title{font-size:13px;font-weight:700;color:#ccdaf5;display:flex;align-items:center;gap:6px}
+    .search-box{padding:5px 10px;background:rgba(12,22,42,.85);border:1px solid rgba(30,60,120,.5);color:#ccdaf5;font-size:11px;border-radius:5px;outline:none;font-family:'Inter',sans-serif;min-width:200px}
+    .search-box:focus{border-color:rgba(0,229,255,.5)}
+    /* Stats strip */
+    .stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(30,60,120,.3);flex-shrink:0}
+    .ss-cell{background:rgba(8,15,30,.9);padding:7px 12px;text-align:center}
+    .ss-v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;color:#ccdaf5}
+    .ss-l{font-size:9px;text-transform:uppercase;color:#2d4060;letter-spacing:.4px;margin-top:1px}
+    /* Filter bar */
+    .cat-filter-bar{display:flex;gap:5px;flex-wrap:wrap;padding:8px 12px;background:rgba(8,15,30,.9);border-bottom:1px solid rgba(30,60,120,.3);flex-shrink:0;align-items:center}
+    .fc{padding:4px 10px;border-radius:4px;border:1px solid rgba(30,60,120,.5);background:rgba(12,22,42,.7);color:#6a85b0;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s}
+    .fc:hover{border-color:rgba(0,229,255,.4);color:#ccdaf5}
+    .fc.active{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.5);color:#00e5ff}
+    /* Grid */
+    .inf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;padding:12px;overflow-y:auto;flex:1;align-content:start;min-height:0}
+    /* Cards */
+    .inf-card{background:rgba(10,18,35,.7);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;cursor:pointer;transition:all .2s}
+    .inf-card:hover{background:rgba(20,35,65,.9);border-color:rgba(0,220,255,.4);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.5)}
+    .inf-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.1)}
+    .inf-name{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .inf-role{font-size:10px;color:#6a85b0;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .inf-plat{display:flex;gap:3px;margin-top:4px}
+    .plt-badge{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700}
+    .plt-badge.x{background:rgba(255,255,255,.08);color:#fff}
+    .plt-badge.t{background:rgba(255,0,0,.1);color:#ff5555}
+    .plt-badge.li{background:rgba(0,119,181,.15);color:#0a85c2}
+    .impact-ring{width:36px;height:36px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+    .inf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+    .istt{text-align:center;padding:5px 3px;background:rgba(0,0,0,.25);border-radius:4px}
+    .istt-v{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace}
+    .istt-l{font-size:8.5px;color:#2d4060;text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+    .inf-cat-badge{margin-top:8px;padding:4px 8px;border-radius:3px;border-left:2px solid;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+    /* Ticker */
+    #ticker{height:28px;background:#020810;border-top:1px solid rgba(30,60,120,.5);display:flex;align-items:center;overflow:hidden;flex-shrink:0}
+    .ticker-tag{padding:0 10px;font-size:9px;font-weight:700;color:#00e676;flex-shrink:0;border-right:1px solid rgba(30,60,120,.5);letter-spacing:.5px}
+    .ticker-wrap{overflow:hidden;flex:1;position:relative}
+    .ticker-inner{display:flex;gap:0;white-space:nowrap;animation:tickerScroll 55s linear infinite}
+    .tn{padding:0 24px;font-size:10px;font-weight:500;border-right:1px solid rgba(30,60,120,.3)}
+    @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    /* Modal */
+    .inf-detail-modal{display:none;position:fixed;inset:0;background:rgba(2,8,16,.88);z-index:9999;align-items:center;justify-content:center}
+    .inf-detail-modal.open{display:flex}
+    .modal-box{background:rgba(12,22,42,.98);border:1px solid rgba(0,220,255,.3);border-radius:10px;width:520px;max-height:82vh;overflow-y:auto;padding:20px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+    .modal-close{position:absolute;top:14px;right:14px;background:transparent;border:none;color:#6a85b0;font-size:18px;cursor:pointer}
+    .modal-close:hover{color:#ccdaf5}
+    .modal-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+    .modal-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0}
+    .modal-name{font-size:17px;font-weight:800;color:#fff}
+    .modal-role{font-size:12px;color:#6a85b0;margin-top:2px}
+    .modal-handle{font-size:11px;color:#00e5ff;margin-top:2px}
+    .modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+    .ms-cell{background:rgba(0,0,0,.3);border-radius:5px;padding:8px;text-align:center;border:1px solid rgba(30,60,120,.4)}
+    .ms-v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#ccdaf5}
+    .ms-l{font-size:9px;text-transform:uppercase;color:#2d4060;letter-spacing:.3px;margin-top:3px}
+    .modal-posts{margin-top:12px}
+    .modal-post{padding:10px;background:rgba(0,0,0,.3);border-radius:5px;margin-bottom:8px;font-size:11px;line-height:1.6;color:#ccdaf5;border:1px solid rgba(30,60,120,.3)}
+    .modal-post-meta{font-size:10px;color:#6a85b0;margin-top:6px;display:flex;gap:10px}
+    /* Live post feed */
+    #live-feed{border-top:1px solid rgba(30,60,120,.3);background:rgba(4,8,15,.95);padding:0;flex-shrink:0;max-height:140px;overflow-y:auto;display:none}
+    .lf-item{display:flex;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(30,60,120,.15);align-items:flex-start}
+    .lf-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+    .lf-body{flex:1;min-width:0}
+    .lf-name{font-size:10px;font-weight:700;color:#ccdaf5}
+    .lf-txt{font-size:10px;color:#6a85b0;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lf-sent{font-size:9px;font-weight:700;padding:1px 5px;border-radius:2px}
+    .lf-sent.bull{background:rgba(0,230,118,.12);color:#00e676}
+    .lf-sent.bear{background:rgba(255,23,68,.12);color:#ff1744}
+    .lf-sent.neut{background:rgba(255,255,255,.06);color:#6a85b0}
+    @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .lf-new{animation:slideIn .3s ease}
   </style>
 </head>
 <body>
@@ -56,22 +113,20 @@
   <div id="header">
     <a class="logo" href="index.html">
       <div class="logo-icon">📡</div>
-      <span class="logo-name">Geo<span>Pulse</span> India</span>
+      <span class="logo-name">GeoPulse India</span>
     </a>
-    <div class="header-tickers">
-      <div class="hticker">
-        <span class="hticker-lbl">NIFTY 50</span>
-        <span class="hticker-val" id="nifty-val">22,478.50</span>
-        <div id="nifty-chg" class="hticker-chg up">▲ +166.20 (+0.74%)</div>
-      </div>
-      <div class="hticker">
-        <span class="hticker-lbl">BANKNIFTY</span>
-        <span class="hticker-val" id="bn-val">48,234.70</span>
-        <div id="bn-chg" class="hticker-chg up">▲ +342.40 (+0.71%)</div>
-      </div>
+    <div class="hticker">
+      <span class="hticker-lbl">NIFTY 50</span>
+      <span class="hticker-val" id="nifty-val">22,478.50</span>
+      <span class="hticker-chg up" id="nifty-chg">▲ +166.20 (+0.74%)</span>
     </div>
-    <div id="mkt-badge" class="mkt-badge mkt-open"><span class="pulse-dot"></span>NSE LIVE</div>
-    <span class="clock" id="clock" style="margin-left:auto">🕐 --:--:-- IST</span>
+    <div class="hticker">
+      <span class="hticker-lbl">BANKNIFTY</span>
+      <span class="hticker-val" id="bn-val">48,234.70</span>
+      <span class="hticker-chg up" id="bn-chg">▲ +342.40 (+0.71%)</span>
+    </div>
+    <div class="mkt-badge mkt-open"><span class="pulse-dot"></span>NSE LIVE</div>
+    <span class="clock" id="clock">🕐 --:--:-- IST</span>
   </div>
 
   <!-- NAVBAR -->
@@ -82,26 +137,26 @@
     <a class="nav-btn" href="geopolitics.html"><i class="fa fa-globe"></i> Geopolitics</a>
   </div>
 
-  <!-- PAGE CONTENT -->
-  <div class="page active" id="pg-inf" style="display:flex">
+  <!-- PAGE -->
+  <div id="pg-inf">
 
     <!-- Page header -->
     <div class="page-hdr">
       <div>
-        <div class="page-title"><i class="fa fa-users" style="color:var(--cyan)"></i> Top 50 Market Influencers</div>
-        <div style="font-size:10px;color:var(--text2);margin-top:2px">Politicians · Central Bankers · Fund Managers · Investors · Corporate Leaders tracked for Indian market impact</div>
+        <div class="page-title"><i class="fa fa-users" style="color:#00e5ff"></i> Top 50 Market Influencers</div>
+        <div style="font-size:10px;color:#6a85b0;margin-top:2px">Politicians · Central Bankers · Fund Managers · Investors · Corporate Leaders — tracked for Indian market impact</div>
       </div>
       <input type="text" class="search-box" id="inf-search" placeholder="🔍 Search influencer..." oninput="filterInfluencers()">
     </div>
 
     <!-- Stats strip -->
     <div class="stat-strip">
-      <div class="ss-cell"><div class="ss-v text-cyan">50</div><div class="ss-l">Influencers</div></div>
-      <div class="ss-cell"><div class="ss-v text-green">28</div><div class="ss-l">India-based</div></div>
+      <div class="ss-cell"><div class="ss-v" style="color:#00e5ff">50</div><div class="ss-l">Influencers</div></div>
+      <div class="ss-cell"><div class="ss-v" style="color:#00e676">28</div><div class="ss-l">India-based</div></div>
       <div class="ss-cell"><div class="ss-v">12</div><div class="ss-l">Political</div></div>
-      <div class="ss-cell"><div class="ss-v text-purple">18</div><div class="ss-l">Finance/Investment</div></div>
-      <div class="ss-cell"><div class="ss-v text-orange">8</div><div class="ss-l">Corporate</div></div>
-      <div class="ss-cell"><div class="ss-v" id="live-posts-cnt" style="color:var(--yellow)">247</div><div class="ss-l">Posts Today</div></div>
+      <div class="ss-cell"><div class="ss-v" style="color:#c77dff">18</div><div class="ss-l">Finance/Invest</div></div>
+      <div class="ss-cell"><div class="ss-v" style="color:#ff9100">8</div><div class="ss-l">Corporate</div></div>
+      <div class="ss-cell"><div class="ss-v" id="live-posts-cnt" style="color:#ffd600">247</div><div class="ss-l">Posts Today</div></div>
     </div>
 
     <!-- Category filter -->
@@ -116,9 +171,10 @@
       <button class="fc" onclick="setCat('tech',this)">💻 Tech</button>
       <button class="fc" onclick="setCat('fintech',this)">🚀 Fintech</button>
       <button class="fc" onclick="setCat('regulatory',this)">⚖️ Regulatory</button>
-      <button class="fc" onclick="setCat('institution',this)">🌐 Global Institutions</button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)">
-        Sort: <select style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:3px;font-size:10px" id="sort-select" onchange="sortInfluencers(this.value)">
+      <button class="fc" onclick="setCat('institution',this)">🌐 Global</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10px;color:#6a85b0">
+        Sort:
+        <select style="background:rgba(12,22,42,.85);border:1px solid rgba(30,60,120,.5);color:#ccdaf5;padding:3px 8px;border-radius:4px;font-size:10px;outline:none" onchange="sortInfluencers(this.value)">
           <option value="impact">Impact Score</option>
           <option value="followers">Followers</option>
           <option value="name">Name A-Z</option>
@@ -126,7 +182,14 @@
       </div>
     </div>
 
-    <div class="inf-grid" id="inf-grid"></div>
+    <!-- Live feed strip -->
+    <div id="live-feed"></div>
+
+    <!-- Grid -->
+    <div class="inf-grid" id="inf-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:#2d4060;font-size:13px">Loading influencers...</div>
+    </div>
+
   </div>
 
   <!-- Ticker -->
@@ -134,6 +197,7 @@
     <div class="ticker-tag">📡 LIVE</div>
     <div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner"></div></div>
   </div>
+
 </div>
 
 <!-- Modal -->
@@ -144,80 +208,149 @@
   </div>
 </div>
 
-<script src="app.js"></script>
 <script>
+/* ── ALL 50 INFLUENCERS DATA (self-contained) ──────── */
+const INF_DATA = [
+  {id:1, name:"Narendra Modi",        handle:"@narendramodi",     plt:["x"],       cat:"political",    flag:"🇮🇳",role:"Prime Minister of India",              impact:96,avatar:"#e65100",init:"NM", followers:"95.2M"},
+  {id:2, name:"Nirmala Sitharaman",   handle:"@nsitharaman",      plt:["x"],       cat:"financial",    flag:"🇮🇳",role:"Finance Minister, India",              impact:91,avatar:"#6a1b9a",init:"NS", followers:"7.8M"},
+  {id:3, name:"Mukesh Ambani",        handle:"@MukeshDAmbani",    plt:["x"],       cat:"corporate",    flag:"🇮🇳",role:"Chairman, Reliance Industries",        impact:89,avatar:"#1565c0",init:"MA", followers:"12.4M"},
+  {id:4, name:"Gautam Adani",         handle:"@gautam_adani",     plt:["x"],       cat:"corporate",    flag:"🇮🇳",role:"Chairman, Adani Group",                impact:87,avatar:"#2e7d32",init:"GA", followers:"8.6M"},
+  {id:5, name:"Jerome Powell",        handle:"@federalreserve",   plt:["x"],       cat:"central_bank", flag:"🇺🇸",role:"Chair, US Federal Reserve",           impact:96,avatar:"#263238",init:"JP", followers:"3.1M"},
+  {id:6, name:"Donald Trump",         handle:"@realDonaldTrump",  plt:["x","truth"],cat:"political",   flag:"🇺🇸",role:"47th US President",                   impact:95,avatar:"#bf360c",init:"DT", followers:"94.3M"},
+  {id:7, name:"Elon Musk",            handle:"@elonmusk",         plt:["x"],       cat:"tech_political",flag:"🇺🇸",role:"CEO Tesla/SpaceX, Owner X",          impact:92,avatar:"#1976d2",init:"EM", followers:"178M"},
+  {id:8, name:"Christine Lagarde",    handle:"@Lagarde",          plt:["x"],       cat:"central_bank", flag:"🇪🇺",role:"President, European Central Bank",    impact:86,avatar:"#1a237e",init:"CL", followers:"2.3M"},
+  {id:9, name:"Warren Buffett",       handle:"@WarrenBuffett",    plt:["x"],       cat:"investor",     flag:"🇺🇸",role:"CEO, Berkshire Hathaway",             impact:90,avatar:"#1b5e20",init:"WB", followers:"2.7M"},
+  {id:10,name:"Ray Dalio",            handle:"@RayDalio",         plt:["x","li"],  cat:"investor",     flag:"🇺🇸",role:"Founder, Bridgewater Associates",     impact:83,avatar:"#004d40",init:"RD", followers:"1.9M"},
+  {id:11,name:"Raghuram Rajan",       handle:"@RBI_RajanRG",      plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Former RBI Governor",                 impact:85,avatar:"#1a5276",init:"RR", followers:"2.1M"},
+  {id:12,name:"Uday Kotak",           handle:"@udaykotak",        plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Founder, Kotak Mahindra Bank",        impact:82,avatar:"#f57f17",init:"UK", followers:"1.4M"},
+  {id:13,name:"Nithin Kamath",        handle:"@Nithin0dha",       plt:["x"],       cat:"fintech",      flag:"🇮🇳",role:"CEO, Zerodha",                        impact:80,avatar:"#6a1b9a",init:"NK", followers:"893K"},
+  {id:14,name:"Deepak Shenoy",        handle:"@deepakshenoy",     plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Founder, Capitalmind",                impact:76,avatar:"#00695c",init:"DS", followers:"654K"},
+  {id:15,name:"Basant Maheshwari",    handle:"@BMTheEquityDesk",  plt:["x"],       cat:"investor",     flag:"🇮🇳",role:"Founder, The Equity Desk",           impact:74,avatar:"#e65100",init:"BM", followers:"521K"},
+  {id:16,name:"Vijay Kedia",          handle:"@VijayKedia007",    plt:["x"],       cat:"investor",     flag:"🇮🇳",role:"Ace Indian Investor",                 impact:72,avatar:"#0277bd",init:"VK", followers:"412K"},
+  {id:17,name:"Saurabh Mukherjea",    handle:"@saurabh_mukherj",  plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"CEO, Marcellus Investment",           impact:74,avatar:"#00838f",init:"SM", followers:"388K"},
+  {id:18,name:"Raamdeo Agrawal",      handle:"@RaamdeoMOFSL",     plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Chairman, Motilal Oswal",             impact:77,avatar:"#d84315",init:"RA", followers:"476K"},
+  {id:19,name:"Shankar Sharma",       handle:"@1stglobal_",       plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Co-founder, First Global",            impact:70,avatar:"#b71c1c",init:"SS", followers:"318K"},
+  {id:20,name:"Nilesh Shah",          handle:"@NileshShah68",     plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"MD, Kotak Mutual Fund",               impact:74,avatar:"#4e342e",init:"NS", followers:"356K"},
+  {id:21,name:"Larry Fink",           handle:"@BlackRock",        plt:["x","li"],  cat:"finance",      flag:"🇺🇸",role:"CEO, BlackRock",                      impact:86,avatar:"#1a237e",init:"LF", followers:"1.8M"},
+  {id:22,name:"Jamie Dimon",          handle:"@jpmorgan",         plt:["x","li"],  cat:"finance",      flag:"🇺🇸",role:"CEO, JPMorgan Chase",                 impact:85,avatar:"#795548",init:"JD", followers:"1.2M"},
+  {id:23,name:"Michael Burry",        handle:"@michaeljburry",    plt:["x"],       cat:"investor",     flag:"🇺🇸",role:"CIO, Scion Asset Management",         impact:73,avatar:"#212121",init:"MB", followers:"742K"},
+  {id:24,name:"George Soros",         handle:"@georgesoros",      plt:["x"],       cat:"investor",     flag:"🇺🇸",role:"Chairman, Open Society",              impact:78,avatar:"#4a148c",init:"GS", followers:"623K"},
+  {id:25,name:"Mohnish Pabrai",       handle:"@MohnishPabrai",    plt:["x"],       cat:"investor",     flag:"🇺🇸",role:"Founder, Pabrai Funds",               impact:71,avatar:"#0b5345",init:"MP", followers:"289K"},
+  {id:26,name:"Mohammed Bin Salman",  handle:"@Vision2030",       plt:["x"],       cat:"political",    flag:"🇸🇦",role:"Crown Prince, Saudi Arabia",          impact:81,avatar:"#1b5e20",init:"MBS",followers:"5.2M"},
+  {id:27,name:"Vladimir Putin",       handle:"@KremlinRussia_E",  plt:["x"],       cat:"political",    flag:"🇷🇺",role:"President, Russia",                   impact:86,avatar:"#c62828",init:"VP", followers:"4.7M"},
+  {id:28,name:"Volodymyr Zelensky",   handle:"@ZelenskyyUa",      plt:["x"],       cat:"political",    flag:"🇺🇦",role:"President, Ukraine",                  impact:82,avatar:"#1565c0",init:"VZ", followers:"8.9M"},
+  {id:29,name:"Benjamin Netanyahu",   handle:"@IsraeliPM",        plt:["x"],       cat:"political",    flag:"🇮🇱",role:"Prime Minister, Israel",              impact:79,avatar:"#283593",init:"BN", followers:"3.6M"},
+  {id:30,name:"Masayoshi Son",        handle:"@masason",          plt:["x"],       cat:"investor",     flag:"🇯🇵",role:"CEO, SoftBank Group",                 impact:78,avatar:"#c62828",init:"MS", followers:"1.4M"},
+  {id:31,name:"Kristalina Georgieva", handle:"@KGeorgieva",       plt:["x","li"],  cat:"institution",  flag:"🌐",role:"Managing Director, IMF",               impact:83,avatar:"#6a1b9a",init:"KG", followers:"876K"},
+  {id:32,name:"OPEC Secretary General",handle:"@OPECSecGen",      plt:["x"],       cat:"institution",  flag:"🌐",role:"Secretary-General, OPEC+",             impact:81,avatar:"#e65100",init:"OPEC",followers:"562K"},
+  {id:33,name:"Janet Yellen",         handle:"@SecYellen",        plt:["x"],       cat:"financial",    flag:"🇺🇸",role:"US Treasury Secretary",               impact:87,avatar:"#880e4f",init:"JY", followers:"1.1M"},
+  {id:34,name:"Sundar Pichai",        handle:"@sundarpichai",     plt:["x"],       cat:"tech",         flag:"🇺🇸",role:"CEO, Alphabet/Google",                impact:76,avatar:"#1565c0",init:"SP", followers:"6.8M"},
+  {id:35,name:"Satya Nadella",        handle:"@satyanadella",     plt:["x","li"],  cat:"tech",         flag:"🇺🇸",role:"CEO, Microsoft",                      impact:77,avatar:"#00695c",init:"SN", followers:"5.3M"},
+  {id:36,name:"Mark Zuckerberg",      handle:"@zuck",             plt:["x"],       cat:"tech",         flag:"🇺🇸",role:"CEO, Meta",                            impact:75,avatar:"#1976d2",init:"MZ", followers:"12.1M"},
+  {id:37,name:"RBI Governor",         handle:"@RBI",              plt:["x"],       cat:"central_bank", flag:"🇮🇳",role:"Governor, Reserve Bank of India",     impact:93,avatar:"#004d40",init:"RBI",followers:"3.4M"},
+  {id:38,name:"SEBI Chairman",        handle:"@SEBI_India",       plt:["x"],       cat:"regulatory",   flag:"🇮🇳",role:"Chairman, SEBI",                      impact:89,avatar:"#1b5e20",init:"SEBI",followers:"2.8M"},
+  {id:39,name:"N. Chandrasekaran",    handle:"@nchandrasekaran",  plt:["x","li"],  cat:"corporate",    flag:"🇮🇳",role:"Chairman, Tata Sons",                 impact:80,avatar:"#4527a0",init:"NC", followers:"678K"},
+  {id:40,name:"Kumar Mangalam Birla", handle:"@AdityaBirla",      plt:["x"],       cat:"corporate",    flag:"🇮🇳",role:"Chairman, Aditya Birla Group",        impact:78,avatar:"#e64a19",init:"KB", followers:"542K"},
+  {id:41,name:"Rahul Gandhi",         handle:"@RahulGandhi",      plt:["x"],       cat:"political",    flag:"🇮🇳",role:"Leader of Opposition, India",         impact:73,avatar:"#880e4f",init:"RG", followers:"25.8M"},
+  {id:42,name:"Arvind Kejriwal",      handle:"@ArvindKejriwal",   plt:["x"],       cat:"political",    flag:"🇮🇳",role:"AAP National Convenor",               impact:69,avatar:"#0277bd",init:"AK", followers:"23.4M"},
+  {id:43,name:"S. Naren",             handle:"@s_naren",          plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"CIO, ICICI Prudential AMC",           impact:73,avatar:"#2e7d32",init:"SN", followers:"298K"},
+  {id:44,name:"Kenneth Andrade",      handle:"@KennethAndrade",   plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Founder, Old Bridge Capital",         impact:70,avatar:"#4e342e",init:"KA", followers:"214K"},
+  {id:45,name:"Prashant Jain",        handle:"@PrashantJain3P",   plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Founder, 3P Investment Managers",     impact:72,avatar:"#37474f",init:"PJ", followers:"187K"},
+  {id:46,name:"Klaus Schwab",         handle:"@KlausSchwab",      plt:["x"],       cat:"institution",  flag:"🌐",role:"Founder, World Economic Forum",        impact:71,avatar:"#1a237e",init:"KS", followers:"492K"},
+  {id:47,name:"Anand Mahindra",       handle:"@anandmahindra",    plt:["x"],       cat:"corporate",    flag:"🇮🇳",role:"Chairman, Mahindra Group",             impact:79,avatar:"#c62828",init:"AM", followers:"11.2M"},
+  {id:48,name:"Porinju Veliyath",     handle:"@porinju",          plt:["x"],       cat:"investor",     flag:"🇮🇳",role:"CEO, Equity Intelligence India",      impact:68,avatar:"#6a1b9a",init:"PV", followers:"184K"},
+  {id:49,name:"Ajay Bagga",           handle:"@Ajay_Bagga",       plt:["x"],       cat:"finance",      flag:"🇮🇳",role:"Market Strategist & Expert",          impact:69,avatar:"#2e4057",init:"AB", followers:"156K"},
+  {id:50,name:"Ashish Kacholia",      handle:"@AshishKacholia",   plt:["x"],       cat:"investor",     flag:"🇮🇳",role:"Ace Investor, Small-Cap Expert",      impact:67,avatar:"#00695c",init:"AK", followers:"143K"}
+];
+
+/* ── SAMPLE POST TEMPLATES ─────────────────────────── */
+const POSTS = [
+  {txt:"🚨 Fed holds rates — Dollar strengthens. FII pressure on #Nifty. Watch 22,000 support.",sent:"bearish"},
+  {txt:"US 10Y yield spikes. FII outflows from EM accelerating. #Nifty50 support at 22,200 📊",sent:"bearish"},
+  {txt:"BREAKING: Trump tariffs on imports. India sector watch — IT & Pharma resilient 🇮🇳",sent:"neutral"},
+  {txt:"Ceasefire progress. Global risk appetite improving. #FII buying in India expected ✅",sent:"bullish"},
+  {txt:"OPEC+ extends cuts. Crude at $83/bbl. Current account deficit concern for India 🛢️",sent:"bearish"},
+  {txt:"🇮🇳 RBI rate cut 25bps. Repo at 6.00%. #BankNifty surges on liquidity news 🎉",sent:"bullish"},
+  {txt:"India CPI at 4.2% — below target. Rate cut probability rises to 78%. Bullish 📉",sent:"bullish"},
+  {txt:"FII net BUY ₹4,800cr today. Rotation into IT & Pharma. #Nifty breakout likely",sent:"bullish"},
+  {txt:"GIFT Nifty +0.4% — positive open expected. Key resistance 22,800 | Support 22,200",sent:"bullish"},
+  {txt:"SEBI new F&O rules. Weekly expiry rationalization. Option writers: margin hike 🔴",sent:"neutral"},
+  {txt:"BlackRock increases India allocation to 3.2%. $800Mn deployed in Indian equities 🌐",sent:"bullish"},
+  {txt:"SIP flows hit ₹23,500cr — new record. Retail buying strong 💪 #Nifty supported",sent:"bullish"},
+  {txt:"China stimulus $1.4T announced. EM risk-on. India metals & infra to benefit 🟢",sent:"bullish"},
+  {txt:"Middle East tensions rising. Crude spikes $5. India CAD under pressure ⚠️",sent:"bearish"},
+  {txt:"Budget 2026: ₹11L cr infra push. Capital gains unchanged. Nifty positive 🇮🇳",sent:"bullish"},
+];
+
 let currentCat = 'all';
 let currentSort = 'impact';
 let searchQuery = '';
+let postCount = 247;
 
-function getFollowerNum(f) {
-  if(f.includes('M')) return parseFloat(f)*1000000;
-  if(f.includes('K')) return parseFloat(f)*1000;
-  return parseFloat(f)||0;
-}
-
+/* ── RENDER INFLUENCER GRID ─────────────────────────── */
 function renderInfluencers() {
-  // Use global INFLUENCERS directly — no dependency on window.GeoPulse
-  const list_src = (typeof INFLUENCERS !== 'undefined') ? INFLUENCERS
-                 : (window.GeoPulse && window.GeoPulse.INFLUENCERS) ? window.GeoPulse.INFLUENCERS
-                 : [];
-  let list = [...list_src];
-  if(!list.length){ setTimeout(renderInfluencers, 200); return; } // retry if not loaded yet
-  if(currentCat!=='all') list=list.filter(i=>i.cat===currentCat);
-  if(searchQuery) list=list.filter(i=>i.name.toLowerCase().includes(searchQuery)||i.role.toLowerCase().includes(searchQuery)||i.handle.toLowerCase().includes(searchQuery));
-  if(currentSort==='impact') list.sort((a,b)=>b.impact-a.impact);
-  else if(currentSort==='followers') list.sort((a,b)=>getFollowerNum(b.followers)-getFollowerNum(a.followers));
-  else list.sort((a,b)=>a.name.localeCompare(b.name));
+  let list = [...INF_DATA];
+  if (currentCat !== 'all') list = list.filter(i => i.cat === currentCat || (currentCat === 'tech_political' && i.cat === 'tech_political'));
+  if (searchQuery) list = list.filter(i =>
+    i.name.toLowerCase().includes(searchQuery) ||
+    i.role.toLowerCase().includes(searchQuery) ||
+    i.handle.toLowerCase().includes(searchQuery)
+  );
+  if (currentSort === 'impact') list.sort((a,b) => b.impact - a.impact);
+  else if (currentSort === 'followers') list.sort((a,b) => parseFollowers(b.followers) - parseFollowers(a.followers));
+  else list.sort((a,b) => a.name.localeCompare(b.name));
 
-  const plat = {x:'𝕏', truth:'T', li:'in'};
+  const platLbl = {x:'𝕏', truth:'T', li:'in'};
   const platCls = {x:'x', truth:'t', li:'li'};
-  const catColors = {
-    political:'#e65100',central_bank:'#1565c0',financial:'#6a1b9a',finance:'#00838f',
-    investor:'#1b5e20',corporate:'#bf360c',tech:'#1976d2',fintech:'#4a148c',
-    regulatory:'#004d40',institution:'#37474f',tech_political:'#1976d2'
+  const catColor = {
+    political:'#e65100', central_bank:'#1565c0', financial:'#6a1b9a',
+    finance:'#00838f', investor:'#1b5e20', corporate:'#bf360c',
+    tech:'#1976d2', tech_political:'#1976d2', fintech:'#4a148c',
+    regulatory:'#004d40', institution:'#37474f'
   };
 
   const grid = document.getElementById('inf-grid');
+  if (!list.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#2d4060;font-size:13px">No influencers match your filter.</div>';
+    return;
+  }
+
   grid.innerHTML = list.map(inf => {
-    const pltHtml = inf.plt.map(p=>`<span class="plt-badge ${platCls[p]||'x'}">${plat[p]||'𝕏'}</span>`).join('');
-    const catColor = catColors[inf.cat]||'#455a64';
-    const impactColor = inf.impact>=85?'var(--red)':inf.impact>=70?'var(--orange)':'var(--text2)';
-    return `
-    <div class="inf-card" onclick="openModal(${inf.id})" style="border-color:${inf.impact>=85?'rgba(255,23,68,.2)':inf.impact>=75?'rgba(255,145,0,.15)':''}">
+    const pltHtml = inf.plt.map(p => `<span class="plt-badge ${platCls[p]||'x'}">${platLbl[p]||'𝕏'}</span>`).join('');
+    const cc = catColor[inf.cat] || '#455a64';
+    const impColor = inf.impact >= 85 ? '#ff1744' : inf.impact >= 70 ? '#ff9100' : '#6a85b0';
+    const borderGlow = inf.impact >= 85 ? 'rgba(255,23,68,.25)' : inf.impact >= 75 ? 'rgba(255,145,0,.18)' : '';
+    const postsToday = Math.floor(Math.random() * 12) + 1;
+    return `<div class="inf-card" onclick="openModal(${inf.id})" style="${borderGlow ? 'border-color:' + borderGlow : ''}">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
         <div class="inf-avatar" style="background:${inf.avatar}">${inf.init}</div>
         <div style="flex:1;min-width:0">
           <div class="inf-name">${inf.flag} ${inf.name}</div>
           <div class="inf-role">${inf.role}</div>
-          <div style="font-size:10px;color:var(--cyan);margin-bottom:4px">${inf.handle}</div>
+          <div style="font-size:10px;color:#00e5ff;margin-top:2px;margin-bottom:3px">${inf.handle}</div>
           <div class="inf-plat">${pltHtml}</div>
         </div>
-        <div class="impact-ring" style="background:${impactColor}22;color:${impactColor};border-color:${impactColor}44">${inf.impact}</div>
+        <div class="impact-ring" style="background:${impColor}20;color:${impColor};border-color:${impColor}55">${inf.impact}</div>
       </div>
       <div class="inf-stats">
-        <div class="istt">
-          <div class="istt-v" style="color:${impactColor}">${inf.impact}</div>
-          <div class="istt-l">Impact</div>
-        </div>
-        <div class="istt">
-          <div class="istt-v" style="color:var(--cyan)">${inf.followers}</div>
-          <div class="istt-l">Followers</div>
-        </div>
-        <div class="istt">
-          <div class="istt-v" style="color:var(--yellow)">${Math.round(Math.random()*12+1)}</div>
-          <div class="istt-l">Posts/Day</div>
-        </div>
+        <div class="istt"><div class="istt-v" style="color:${impColor}">${inf.impact}</div><div class="istt-l">Impact</div></div>
+        <div class="istt"><div class="istt-v" style="color:#00e5ff">${inf.followers}</div><div class="istt-l">Followers</div></div>
+        <div class="istt"><div class="istt-v" style="color:#ffd600">${postsToday}</div><div class="istt-l">Posts/Day</div></div>
       </div>
-      <div style="margin-top:8px;padding:5px 7px;background:${catColor}22;border-radius:3px;border-left:2px solid ${catColor};font-size:9px;color:${catColor};font-weight:700;text-transform:uppercase;letter-spacing:.4px">
-        ${inf.cat.replace('_',' ')}
-      </div>
+      <div class="inf-cat-badge" style="background:${cc}18;border-color:${cc};color:${cc}">${inf.cat.replace(/_/g,' ')}</div>
     </div>`;
   }).join('');
 }
 
+function parseFollowers(f) {
+  if (f.includes('M')) return parseFloat(f) * 1e6;
+  if (f.includes('K')) return parseFloat(f) * 1e3;
+  return parseFloat(f) || 0;
+}
+
 function setCat(cat, btn) {
   currentCat = cat;
-  document.querySelectorAll('.fc').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.fc').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderInfluencers();
 }
@@ -232,27 +365,20 @@ function filterInfluencers() {
   renderInfluencers();
 }
 
+/* ── OPEN INFLUENCER MODAL ──────────────────────────── */
 function openModal(id) {
-  const GP = window.GeoPulse || {};
-  const src = (typeof INFLUENCERS !== 'undefined') ? INFLUENCERS : (GP.INFLUENCERS || []);
-  const inf = src.find(i=>i.id===id);
-  if(!inf) return;
+  const inf = INF_DATA.find(i => i.id === id);
+  if (!inf) return;
   const plat = {x:'𝕏 Twitter/X', truth:'Truth Social', li:'LinkedIn'};
-  const pltHtml = inf.plt.map(p=>`<span class="plt-badge ${p==='x'?'x':p==='truth'?'t':'li'}" style="padding:3px 8px;font-size:10px">${plat[p]||'𝕏'}</span>`).join(' ');
-  const impactColor = inf.impact>=85?'var(--red)':inf.impact>=70?'var(--orange)':'var(--text2)';
+  const platCls = {x:'x', truth:'t', li:'li'};
+  const pltHtml = inf.plt.map(p => `<span class="plt-badge ${platCls[p]||'x'}" style="padding:3px 9px;font-size:10px">${plat[p]||'𝕏'}</span>`).join(' ');
+  const impColor = inf.impact >= 85 ? '#ff1744' : inf.impact >= 70 ? '#ff9100' : '#6a85b0';
+  const sentCol = {bullish:'#00e676', bearish:'#ff1744', neutral:'#6a85b0'};
 
-  // Generate sample posts
-  const postPool = (typeof POST_POOL !== 'undefined') ? POST_POOL : (GP.POST_POOL || [{txt:'Market update incoming…',sent:'neutral'}]);
-  const posts = [];
-  for(let i=0;i<4;i++) {
-    const tmpl = postPool[Math.floor(Math.random()*postPool.length)];
-    let txt = tmpl.txt;
-    // Simple fill
-    txt = txt.replace(/{[\w]+}/g, ()=>['bullish','bearish','key level','strong signal','consolidation','breakout'][Math.floor(Math.random()*6)]);
-    posts.push({txt, sent:tmpl.sent, ts:Date.now()-i*3600000*Math.random()*8});
-  }
-
-  const sentCol = {bullish:'var(--green)',bearish:'var(--red)',neutral:'var(--text2)'};
+  const posts = Array.from({length:4}, (_,i) => {
+    const tmpl = POSTS[Math.floor(Math.random() * POSTS.length)];
+    return {txt: tmpl.txt, sent: tmpl.sent, ts: Date.now() - i * 3600000 * (Math.random() * 6 + 1)};
+  });
 
   document.getElementById('modal-content').innerHTML = `
     <div class="modal-header">
@@ -261,33 +387,32 @@ function openModal(id) {
         <div class="modal-name">${inf.flag} ${inf.name}</div>
         <div class="modal-role">${inf.role}</div>
         <div class="modal-handle">${inf.handle}</div>
-        <div style="margin-top:5px">${pltHtml}</div>
+        <div style="margin-top:6px">${pltHtml}</div>
       </div>
     </div>
     <div class="modal-stats">
-      <div class="ms-cell"><div class="ms-v" style="color:${impactColor}">${inf.impact}/100</div><div class="ms-l">Market Impact</div></div>
-      <div class="ms-cell"><div class="ms-v text-cyan">${inf.followers}</div><div class="ms-l">Followers</div></div>
-      <div class="ms-cell"><div class="ms-v text-yellow">${Math.round(Math.random()*15+5)}</div><div class="ms-l">Posts Today</div></div>
-      <div class="ms-cell"><div class="ms-v text-green">${Math.round(Math.random()*40+60)}%</div><div class="ms-l">Influence Score</div></div>
+      <div class="ms-cell"><div class="ms-v" style="color:${impColor}">${inf.impact}/100</div><div class="ms-l">Market Impact</div></div>
+      <div class="ms-cell"><div class="ms-v" style="color:#00e5ff">${inf.followers}</div><div class="ms-l">Followers</div></div>
+      <div class="ms-cell"><div class="ms-v" style="color:#ffd600">${Math.round(Math.random()*15+5)}</div><div class="ms-l">Posts Today</div></div>
+      <div class="ms-cell"><div class="ms-v" style="color:#00e676">${Math.round(Math.random()*30+60)}%</div><div class="ms-l">Bullish Score</div></div>
     </div>
-    <div style="background:var(--bg-secondary);border-radius:5px;padding:8px 12px;margin-bottom:12px;font-size:10px;color:var(--text2);line-height:1.5">
-      <strong style="color:var(--text)">Category:</strong> ${inf.cat.replace(/_/g,' ').toUpperCase()}
-      &nbsp;|&nbsp; <strong style="color:var(--text)">Country:</strong> ${inf.flag}
-      &nbsp;|&nbsp; <strong style="color:var(--text)">Tracked on:</strong> ${inf.plt.join(', ')}
+    <div style="background:rgba(0,0,0,.25);border-radius:5px;padding:8px 12px;margin-bottom:12px;font-size:10px;color:#6a85b0;line-height:1.6;border:1px solid rgba(30,60,120,.3)">
+      <strong style="color:#ccdaf5">Category:</strong> ${inf.cat.replace(/_/g,' ').toUpperCase()} &nbsp;|&nbsp;
+      <strong style="color:#ccdaf5">Country:</strong> ${inf.flag} &nbsp;|&nbsp;
+      <strong style="color:#ccdaf5">Tracked on:</strong> ${inf.plt.join(', ')}
     </div>
     <div class="modal-posts">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">RECENT AI-ANALYZED POSTS</div>
-      ${posts.map(p=>`
-        <div class="modal-post">
-          ${p.txt.replace(/#(\w+)/g,'<span style="color:var(--cyan)">#$1</span>')}
-          <div class="modal-post-meta">
-            <span style="color:${sentCol[p.sent]||'var(--text2)'}">● ${p.sent.toUpperCase()}</span>
-            <span>${new Date(p.ts).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})}</span>
-            <span>♥ ${Math.round(Math.random()*5000+100).toLocaleString()}</span>
-          </div>
-        </div>`).join('')}
-    </div>
-  `;
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2d4060;margin-bottom:8px">AI-ANALYZED RECENT POSTS</div>
+      ${posts.map(p=>`<div class="modal-post">
+        ${p.txt.replace(/#(\w+)/g,'<span style="color:#00e5ff">#$1</span>')}
+        <div class="modal-post-meta">
+          <span style="color:${sentCol[p.sent]||'#6a85b0'}">● ${p.sent.toUpperCase()}</span>
+          <span>${new Date(p.ts).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})}</span>
+          <span>♥ ${Math.round(Math.random()*5000+200).toLocaleString()}</span>
+          <span>↺ ${Math.round(Math.random()*1000+50).toLocaleString()}</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
   document.getElementById('inf-modal').classList.add('open');
 }
 
@@ -295,51 +420,121 @@ function closeModal() {
   document.getElementById('inf-modal').classList.remove('open');
 }
 
-// Ticker items
+/* ── CLOCK ──────────────────────────────────────────── */
+function updateClock() {
+  const now = new Date();
+  const ist = now.toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const el = document.getElementById('clock');
+  if (el) el.textContent = '🕐 ' + ist + ' IST';
+}
+
+/* ── SIMULATED LIVE PRICES ──────────────────────────── */
+let niftyPrice = 22478.50;
+let niftyBase = 22312.30;
+let bnPrice = 48234.70;
+let bnBase = 47892.30;
+
+function updatePrices() {
+  niftyPrice += (Math.random() - 0.495) * 18;
+  bnPrice += (Math.random() - 0.495) * 38;
+
+  const nDiff = niftyPrice - niftyBase;
+  const nPct = (nDiff / niftyBase * 100);
+  const bDiff = bnPrice - bnBase;
+  const bPct = (bDiff / bnBase * 100);
+
+  const nv = document.getElementById('nifty-val');
+  const nc = document.getElementById('nifty-chg');
+  const bv = document.getElementById('bn-val');
+  const bc = document.getElementById('bn-chg');
+
+  if (nv) {
+    nv.textContent = niftyPrice.toFixed(2);
+    nv.style.transition = 'color .3s';
+    nv.style.color = nDiff >= 0 ? '#00e676' : '#ff1744';
+    setTimeout(() => { nv.style.color = ''; }, 500);
+  }
+  if (nc) {
+    nc.textContent = (nDiff >= 0 ? '▲ +' : '▼ ') + nDiff.toFixed(2) + ' (' + (nPct >= 0 ? '+' : '') + nPct.toFixed(2) + '%)';
+    nc.className = 'hticker-chg ' + (nDiff >= 0 ? 'up' : 'dn');
+  }
+  if (bv) {
+    bv.textContent = bnPrice.toFixed(2);
+    bv.style.transition = 'color .3s';
+    bv.style.color = bDiff >= 0 ? '#00e676' : '#ff1744';
+    setTimeout(() => { bv.style.color = ''; }, 500);
+  }
+  if (bc) {
+    bc.textContent = (bDiff >= 0 ? '▲ +' : '▼ ') + bDiff.toFixed(2) + ' (' + (bPct >= 0 ? '+' : '') + bPct.toFixed(2) + '%)';
+    bc.className = 'hticker-chg ' + (bDiff >= 0 ? 'up' : 'dn');
+  }
+}
+
+/* ── LIVE POST FEED ─────────────────────────────────── */
+function addLivePost() {
+  const inf = INF_DATA[Math.floor(Math.random() * INF_DATA.length)];
+  const post = POSTS[Math.floor(Math.random() * POSTS.length)];
+  const sentCls = post.sent === 'bullish' ? 'bull' : post.sent === 'bearish' ? 'bear' : 'neut';
+  const feed = document.getElementById('live-feed');
+  if (!feed) return;
+  feed.style.display = 'block';
+
+  const div = document.createElement('div');
+  div.className = 'lf-item lf-new';
+  div.innerHTML = `
+    <div class="lf-av" style="background:${inf.avatar}">${inf.init}</div>
+    <div class="lf-body">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="lf-name">${inf.flag} ${inf.name}</span>
+        <span class="lf-sent ${sentCls}">${post.sent.toUpperCase()}</span>
+        <span style="font-size:9px;color:#2d4060;margin-left:auto">${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      <div class="lf-txt">${post.txt}</div>
+    </div>`;
+  feed.insertBefore(div, feed.firstChild);
+
+  // Keep only 5 latest posts in feed
+  while (feed.children.length > 5) feed.lastChild.remove();
+
+  postCount += Math.ceil(Math.random() * 2);
+  const pcEl = document.getElementById('live-posts-cnt');
+  if (pcEl) pcEl.textContent = postCount;
+}
+
+/* ── TICKER ─────────────────────────────────────────── */
 const TICKER_ITEMS = [
-  {txt:'NIFTY50 hits intraday high — #BankNifty leads gains',type:'bullish'},
-  {txt:'FED WATCH: Rate cut odds shift to June 2025',type:'neutral'},
-  {txt:'CRUDE OIL: Brent at $83.4/bbl — OPEC+ maintains cuts',type:'neutral'},
-  {txt:'SIP FLOWS: March SIP collections hit ₹23,800cr — new record',type:'bullish'},
-  {txt:'TRUMP TARIFFS: 25% on steel — India negotiating exemption',type:'bearish'},
-  {txt:'MSCI: India weight increased — passive inflows expected',type:'bullish'},
+  {txt:'NIFTY50 approaching key resistance at 22,800 — watch for breakout',type:'bullish'},
+  {txt:'FED WATCH: Rate cut odds shift to June 2026 — Dollar stays elevated',type:'neutral'},
+  {txt:'CRUDE OIL: Brent at $83.4/bbl — OPEC+ maintains production cuts',type:'neutral'},
+  {txt:'SIP FLOWS: March SIP collections hit ₹23,800cr — new all-time record',type:'bullish'},
+  {txt:'TRUMP TARIFFS: 25% on steel & aluminium — India negotiating exemption',type:'bearish'},
+  {txt:'MSCI REBALANCING: India weight increased to 2.9% — passive inflows expected',type:'bullish'},
+  {txt:'RBI: Forex reserves at $648Bn — comfortable buffer to defend INR',type:'bullish'},
+  {txt:'CHINA STIMULUS: $1.4T package announced — EM risk-appetite improves',type:'bullish'},
+  {txt:'SEBI: Weekly expiry rationalization — single weekly expiry from April',type:'neutral'},
+  {txt:'FII: Net bought ₹3,200cr this week — DII support adds ₹1,800cr',type:'bullish'},
 ];
 
-window.addEventListener('DOMContentLoaded',()=>{
-  const GP = window.GeoPulse || {};
-  if(GP.init) GP.init();
-  renderInfluencers();
-  if(GP.updateClock) GP.updateClock();
-  setInterval(()=>{ if(GP.updateClock) GP.updateClock(); },1000);
-
-  // Update tickers with live flash
-  setInterval(()=>{
-    if(GP.NiftyEngine) GP.NiftyEngine.tick();
-    if(GP.BankNiftyEngine) GP.BankNiftyEngine.tick();
-    if(GP.updateHeaderTickers) GP.updateHeaderTickers();
-    // Flash price elements
-    document.querySelectorAll('.hticker-val').forEach(el=>{
-      el.style.transition='color 0.3s';
-      el.style.color='var(--cyan)';
-      setTimeout(()=>el.style.color='',400);
-    });
-  },2000);
-
-  // Ticker
+function initTicker() {
   const inner = document.getElementById('ticker-inner');
-  if(inner) {
-    inner.innerHTML = [...TICKER_ITEMS,...TICKER_ITEMS].map(t=>
-      `<span class="tn" style="color:${t.type==='bullish'?'var(--green)':t.type==='bearish'?'var(--red)':'var(--text)'}">${t.txt}</span>`
-    ).join('');
-  }
+  if (!inner) return;
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  inner.innerHTML = items.map(t => `<span class="tn" style="color:${t.type==='bullish'?'#00e676':t.type==='bearish'?'#ff1744':'#ccdaf5'}">${t.txt}</span>`).join('');
+}
 
-  // Animate posts count
-  let postsCount = 247;
-  setInterval(()=>{
-    postsCount += Math.round(Math.random()*3+1);
-    const el = document.getElementById('live-posts-cnt');
-    if(el) el.textContent = postsCount;
-  }, 8000);
+/* ── BOOTSTRAP ──────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  renderInfluencers();
+  updateClock();
+  initTicker();
+  setInterval(updateClock, 1000);
+  setInterval(updatePrices, 2500);
+  setInterval(addLivePost, 9000 + Math.random() * 6000);
+
+  // Also try to hook into app.js if loaded
+  if (window.GeoPulse && window.GeoPulse.init) {
+    try { window.GeoPulse.init(); } catch(e) {}
+  }
 });
 </script>
 </body>
