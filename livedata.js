@@ -408,9 +408,12 @@ window.LiveAPI = (function () {
     const inner = document.getElementById('ticker-inner');
     if (inner && news.length) {
       const items = [...news.slice(0, 12), ...news.slice(0, 12)];
-      inner.innerHTML = items.map(n =>
-        `<span class="tn" style="color:${n.sentiment === 'bullish' ? '#00e676' : n.sentiment === 'bearish' ? '#ff1744' : '#ccdaf5'}">${n.title}</span>`
-      ).join('');
+      inner.innerHTML = items.map(n => {
+        const color = n.sentiment === 'bullish' ? '#00e676' : n.sentiment === 'bearish' ? '#ff1744' : '#ccdaf5';
+        const href  = n.url ? ` href="${n.url}" target="_blank" rel="noopener"` : '';
+        const tag   = n.url ? 'a' : 'span';
+        return `<${tag}${href} class="tn" style="color:${color};text-decoration:none">${n.title}</${tag}>`;
+      }).join('');
     }
     // Emit to influencer live feed if on that page
     emit('news_feed_update', news);

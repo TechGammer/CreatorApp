@@ -780,13 +780,16 @@ function renderPost(post) {
   const plt = inf.plt.map(p=>`<span class="plt-icon plt-${p==='x'?'x':p==='truth'?'t':'li'}">${p==='x'?'𝕏':p==='truth'?'T':'in'}</span>`).join('');
   const impactClass = post.impact==='high'?'high':post.impact==='medium'?'medium':'low';
   const sentClass = post.sent;
+  const srcLink2 = post.url
+    ? `<a href="${post.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#00e5ff;text-decoration:none;margin-left:6px">↗ source</a>`
+    : '';
   return `
-  <div class="feed-post" data-cat="${inf.cat}" data-flag="${inf.flag}">
+  <div class="feed-post" data-cat="${inf.cat||''}" data-flag="${inf.flag||''}"${post.url?` onclick="window.open('${post.url.replace(/'/g,'%27')}','_blank')" style="cursor:pointer"`:''}>
     <div class="post-hdr">
       <div class="p-avatar" style="background:${inf.avatar}">${inf.init}</div>
       <div class="p-info">
         <div class="p-name">${inf.flag} ${inf.name}</div>
-        <div class="p-handle">${inf.handle} · <span style="color:var(--text2)">${inf.role}</span></div>
+        <div class="p-handle">${inf.handle} · <span style="color:var(--text2)">${inf.role||''}</span></div>
       </div>
       <div class="p-time">${timeAgo(post.ts)}</div>
     </div>
@@ -795,7 +798,7 @@ function renderPost(post) {
       <span class="ibadge ${impactClass}">${post.impact} impact</span>
       <span class="sbadge ${sentClass}">${post.sent}</span>
       <span style="color:var(--text3);font-size:9px;margin-left:2px">♥ ${(post.likes/1000).toFixed(1)}k · ↺ ${(post.retweets/1000).toFixed(1)}k</span>
-      <span class="ml-auto">${plt}</span>
+      <span class="ml-auto">${plt}${srcLink2}</span>
     </div>
   </div>`;
 }
@@ -1516,12 +1519,18 @@ function renderNewFeed(){
     const inf=post.influencer;
     const plts=inf.plt.map(p=>`<span class="post-platform plt-${p==='x'?'tw':p==='li'?'li':p==='yt'?'yt':'tg'}">${p==='x'?'𝕏':p==='li'?'in':p==='yt'?'▶':'TG'}</span>`).join('');
     const impCls=post.sent==='bullish'?'imp-bull':post.sent==='bearish'?'imp-bear':'imp-neut';
-    return `<div class="feed-post" onclick="openInfluencerModal(${inf.id})" title="Click for details">
+    const onclick = post.liveNews && post.url
+      ? `onclick="window.open('${post.url.replace(/'/g,'%27')}','_blank')"`
+      : `onclick="openInfluencerModal(${inf.id})"`;
+    const srcLink = post.liveNews && post.url
+      ? `<a href="${post.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#00e5ff;text-decoration:none;margin-left:auto">↗ source</a>`
+      : '';
+    return `<div class="feed-post" ${onclick} style="cursor:pointer" title="${post.liveNews?'Click to read original article':'Click for influencer details'}">
       <div class="post-top">
         <div class="post-avatar" style="background:${inf.avatar}">${inf.init}</div>
         <div class="post-meta">
           <div class="post-name">${inf.flag} ${inf.name}</div>
-          <div class="post-handle">${inf.handle}</div>
+          <div class="post-handle">${inf.handle||inf.name}</div>
         </div>
         ${plts}
       </div>
@@ -1530,6 +1539,7 @@ function renderNewFeed(){
         <span class="post-time">${timeAgo(post.ts)}</span>
         <span class="post-impact ${impCls}">${post.sent}</span>
         <span class="post-ai"><i class="fa fa-robot"></i></span>
+        ${srcLink}
       </div>
     </div>`;
   }).join('');
